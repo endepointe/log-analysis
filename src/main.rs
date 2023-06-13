@@ -52,9 +52,9 @@ struct Cli {
     // User
     #[arg(short = 'u', value_name = "user")]
     user: String,
-    // Host
-    #[arg(short = 'n', value_name = "host")]
-    host: String,
+    // Hostname
+    #[arg(short = 'n', value_name = "hostname")]
+    hostname: String,
     // Path
     #[arg(short = 'p', value_name = "path/to/private/key")]
     path: std::path::PathBuf,
@@ -93,35 +93,131 @@ fn connect(user: String, host: String, key: String) -> Result<(), Box<dyn Error>
             n += 1;
         }
     }
-    //let _ = channel.wait_close();
+    let _ = channel.wait_close();
     Ok(())
 }
 
-fn list_dir() Result<(), Box<dyn Error>> {
+fn create_session(user: String, host: String, key: String) 
+    -> Result<Session, Box<dyn Error>> {
 
+    let tcp = TcpStream::connect(host + ":22")?;
+    let mut sess = Session::new()?;
+
+    sess.set_tcp_stream(tcp);
+    sess.handshake()?;
+    sess.userauth_pubkey_file(&user,
+                              None,
+                              Path::new(&key),
+                              None)?;
+    let interval = sess.keepalive_send()?;
+    //sess.set_keepalive(true,interval);
+
+    Ok(sess) 
 }
 
-fn main() -> Result<(), Box<dyn Error>> {
-
-    // check host and private keyfile
-    let host = Cli::try_parse(); 
-    match host {
-        Ok(host) => {println!("Success: {}", host.path.display());}
-        Err(reason) => {println!("Error: {reason}");}
-    } 
-
-    let key = "HOME";
-    let mut home = String::from("");
-    match var_os(key) {
-        Some(val) => home = val.into_string().unwrap(),
-        None => () 
+fn run_cmd(sess: &mut Session, cmd: String) -> Result<(),Box<dyn Error>> {
+    let mut channel = sess.channel_session()?;
+    channel.exec(&cmd)?;
+    let mut s = String::new();
+    let _ = channel.read_to_string(&mut s)?;
+    let v: Vec<String> = s.lines().map(|s| s.to_string()).collect();
+    if v.is_empty() != true {
+        println!("{:?}\n",v);
+        let mut n = 0;
+        while n < v.len() {
+            //println!("{}",v[n]);
+            n += 1;
+        }
     }
-    println!("{home:?}");
+    let _ = channel.wait_close();
+    Ok(())
+}
+
+fn get_home_dir() -> Result<String, Box<dyn Error>> {
+    let key = "HOME";
+    let mut home_dir = String::from("");
+    match var_os(key) {
+        Some(val) => home_dir = val.into_string().unwrap(),
+        None => home_dir = "/".to_string() 
+    }
+    /*
     let mut list_dir = Command::new("ls");
     list_dir.current_dir(home);
     list_dir.status().expect("ls ~ failed");
+    */
+    Ok(home_dir)
+}
+fn get_user_info() -> Cli {
+    // create a proc_macro to create a fn that iterates over future struct members
+    //doc.rust-lang.org/reference/procedural-macros.html/
+    //https://stackoverflow.com/questions/54177438/how-to-programmatically-get-the-number-of-fields-of-a-struct
+    let cli_member_count = 3;
+    let mut i = 0;
+    let key = Vec::from(["username","hostname","key file path"]);
+    let mut value: Vec<String> = Vec::from([String::new(),String::new(),String::new()]);
+    
+    loop {
+        println!("Enter {}:", key[i]);
+        let mut input = String::new();
+        let mut err = "Failed to read ".to_owned() + key[i];
+        //io::stdin().read_line(&mut input).expect(&err);
+        match io::stdin().read_line(&mut input) {
+            Ok(val) => {
+                value[i] = input.to_owned();
+                println!("{} {}", &input, &value[i]);
+            }
+            Err(err) => println!("{}",&err), 
+        }
+        i += 1;
+        if i == cli_member_count {
+            println!("Logging in...");
+            break;
+        }
+    }
 
-    let res = connect("ende".to_string(),"endepointe.com".to_string(),"keyende".to_string());
+    Cli {
+        user: String::from(&value[0]),
+        hostname: String::from(&value[1]),
+        path: std::path::PathBuf::from(&value[2]),
+    }
+}
+fn main() -> Result<(), Box<dyn Error>> {
+
+    // check host and private keyfile
+    let mut host = Cli::try_parse(); 
+
+    let mut has_cred = false;
+
+    match host {
+        Ok(host) => {
+            has_cred = true;
+            println!("\t{}",host.hostname);
+            println!("\t{}",host.path.display());
+            println!("\t{}",host.user);
+        }
+        Err(reason) => {
+            host = Ok(get_user_info());
+            println!("Error: {reason}");
+            println!("{}",Ok(host.path.display()));
+        }
+    } 
+    //let mut session = create_session(host.user.unwrap(),host.hostname,host.path.display())?;
+    //*
+    let mut session = create_session("ende".to_string(),
+                    "endepointe.com".to_string(),
+                    "/home/endepointe/keys/ep_do".to_string())?;
+    //*/
+
+    let _ = run_cmd(&mut session, "ls /opt/zeek/logs".to_string())?;
+    let _ = run_cmd(&mut session, "ls /var/www".to_string())?;
+    let _ = run_cmd(&mut session, "ls /var/www/endepointe.com".to_string())?;
+    let _ = run_cmd(&mut session, "cat rdb.sh".to_string())?;
+
+    /*
+    let res = connect("ende".to_string(),
+                    "endepointe.com".to_string(),
+                    "keyende".to_string());
+    */
 
     // setup terminal
     enable_raw_mode()?;
@@ -142,9 +238,11 @@ fn main() -> Result<(), Box<dyn Error>> {
     )?;
     terminal.show_cursor()?;
 
+    /*
     if let Err(err) = res {
         println!("{err:?}");
     }
+    */
 
     Ok(())
 }
