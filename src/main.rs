@@ -1,3 +1,13 @@
+use std::{
+    error::Error, 
+    io,
+    io::prelude::*, 
+    env::{var_os},
+    net::{TcpStream},
+    path::Path,
+    string::{String},
+};
+
 use clap::Parser;
 use ssh2::Session;
 
@@ -23,16 +33,6 @@ use crossterm::{
     },
 };
 
-use std::{
-    error::Error, 
-    io,
-    io::prelude::*, 
-    env::var_os,
-    process::{Command},
-    net::{TcpStream},
-    path::Path,
-    string::{String}
-};
 
 use unicode_width::UnicodeWidthStr;
 
@@ -41,12 +41,14 @@ enum InputMode {
     Editing,
 }
 
-struct AppState {
+struct AppState<'a> {
     input: String,
     input_mode: InputMode,
     messages: Vec<String>,
+    session: &'a Session,
 }
 
+#[derive(Debug)]
 #[derive(Parser)]
 struct Cli {
     // User
@@ -60,15 +62,45 @@ struct Cli {
     path: std::path::PathBuf,
 }
 
-impl Default for AppState {
-    fn default() -> AppState {
+// mirrors Cli values to give the user the option of providing cli options.
+// ill find a better way but for now, this is fine.
+#[derive(Debug)]
+struct Creds {
+    user: String,
+    hostname: String,
+    path: std::path::PathBuf,
+}
+/*
+impl Creds {
+    fn new(&self) {
+        self.user = String::from("");
+        self.hostname = String::from("");
+        self.path = std::path::PathBuf::from("/");
+    }
+}
+*/
+impl AppState<'_> {
+    fn default(s: &Session) -> AppState {
         AppState {
             input: String::new(),
             input_mode: InputMode::Normal,
             messages: Vec::new(),
+            session: &s,
         }
     }
 }
+/*
+impl Default for AppState {
+    fn default(s: &Session) -> AppState {
+        AppState {
+            input: String::new(),
+            input_mode: InputMode::Normal,
+            messages: Vec::new(),
+            session: &s,
+        }
+    }
+}
+*/
 
 fn connect(user: String, host: String, key: String) -> Result<(), Box<dyn Error>>  {
 
@@ -111,7 +143,7 @@ fn create_session(user: String, host: String, key: String)
                               None)?;
     let interval = sess.keepalive_send()?;
     //sess.set_keepalive(true,interval);
-
+    
     Ok(sess) 
 }
 
@@ -147,7 +179,7 @@ fn get_home_dir() -> Result<String, Box<dyn Error>> {
     */
     Ok(home_dir)
 }
-fn get_user_info() -> Cli {
+fn get_user_info() -> Creds {
     // create a proc_macro to create a fn that iterates over future struct members
     //doc.rust-lang.org/reference/procedural-macros.html/
     //https://stackoverflow.com/questions/54177438/how-to-programmatically-get-the-number-of-fields-of-a-struct
@@ -163,8 +195,7 @@ fn get_user_info() -> Cli {
         //io::stdin().read_line(&mut input).expect(&err);
         match io::stdin().read_line(&mut input) {
             Ok(val) => {
-                value[i] = input.to_owned();
-                println!("{} {}", &input, &value[i]);
+                value[i] = input.trim_end().to_owned();
             }
             Err(err) => println!("{}",&err), 
         }
@@ -174,39 +205,38 @@ fn get_user_info() -> Cli {
             break;
         }
     }
-
-    Cli {
+    
+    Creds {
         user: String::from(&value[0]),
         hostname: String::from(&value[1]),
         path: std::path::PathBuf::from(&value[2]),
     }
 }
+
 fn main() -> Result<(), Box<dyn Error>> {
 
     // check host and private keyfile
     let mut host = Cli::try_parse(); 
-
-    let mut has_cred = false;
+    let mut creds = Creds {
+        user: String::from(""),
+        hostname: String::from(""),
+        path: std::path::PathBuf::from("/")
+    };
 
     match host {
         Ok(host) => {
-            has_cred = true;
-            println!("\t{}",host.hostname);
-            println!("\t{}",host.path.display());
-            println!("\t{}",host.user);
+            creds.user = host.user;
+            creds.hostname = host.hostname;
+            creds.path = host.path;
         }
         Err(reason) => {
-            host = Ok(get_user_info());
-            println!("Error: {reason}");
-            println!("{}",Ok(host.path.display()));
+            creds = get_user_info();
+            println!("{:?}",creds);
+            //println!("{reason}");
         }
     } 
-    //let mut session = create_session(host.user.unwrap(),host.hostname,host.path.display())?;
-    //*
-    let mut session = create_session("ende".to_string(),
-                    "endepointe.com".to_string(),
-                    "/home/endepointe/keys/ep_do".to_string())?;
-    //*/
+
+    let mut session = create_session(creds.user,creds.hostname,creds.path.into_os_string().into_string().unwrap())?;
 
     let _ = run_cmd(&mut session, "ls /opt/zeek/logs".to_string())?;
     let _ = run_cmd(&mut session, "ls /var/www".to_string())?;
@@ -226,8 +256,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
 
-    let app = AppState::default();
-    //let res = run_app(&mut terminal, app);
+    let app = AppState::default(&session);
+    let res = run_app(&mut terminal, app);
 
     // restores the terminal
     disable_raw_mode()?;
@@ -238,17 +268,20 @@ fn main() -> Result<(), Box<dyn Error>> {
     )?;
     terminal.show_cursor()?;
 
-    /*
     if let Err(err) = res {
         println!("{err:?}");
     }
-    */
 
     Ok(())
 }
 
 fn run_app<B: Backend>(terminal: &mut Terminal<B>, 
                        mut app: AppState) -> io::Result<()> {
+    match app.session.authenticated() {
+        true => println!("app is authenticated"),
+        false => println!("app session is not authenticated"),
+        _ => ()
+    }
     loop {
         terminal.draw(|f| ui(f, &app))?;
         if let Event::Key(key) = event::read()? {
