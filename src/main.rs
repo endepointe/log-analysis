@@ -2,6 +2,8 @@ use std::{
     error::Error, 
     io,
     io::prelude::*, 
+    thread,
+    time,
     env::{var_os},
     net::{TcpStream},
     path::Path,
@@ -45,7 +47,7 @@ struct AppState<'a> {
     input: String,
     input_mode: InputMode,
     messages: Vec<String>,
-    session: &'a Session,
+    session: &'a mut Session,
 }
 
 #[derive(Debug)]
@@ -79,13 +81,13 @@ impl Creds {
     }
 }
 */
-impl AppState<'_> {
-    fn default(s: &Session) -> AppState {
+impl<'a> AppState<'a> {
+    fn default(s: & mut Session) -> AppState {
         AppState {
             input: String::new(),
             input_mode: InputMode::Normal,
             messages: Vec::new(),
-            session: &s,
+            session: s,
         }
     }
 }
@@ -102,33 +104,6 @@ impl Default for AppState {
 }
 */
 
-fn connect(user: String, host: String, key: String) -> Result<(), Box<dyn Error>>  {
-
-    let tcp = TcpStream::connect(host + ":22")?;
-    let mut sess = Session::new()?;
-
-    sess.set_tcp_stream(tcp);
-    sess.handshake()?;
-    sess.userauth_pubkey_file(&user,None,Path::new("/home/endepointe/keys/ep_do"),None)?;
-    let interval = sess.keepalive_send()?;
-    sess.set_keepalive(true,interval);
-    let mut channel = sess.channel_session()?;
-    channel.exec("ls /opt/zeek/logs")?;
-    let mut s = String::new();
-    let _ = channel.read_to_string(&mut s)?;
-    let v: Vec<String> = s.lines().map(|s| s.to_string()).collect();
-    if v.is_empty() != true {
-        //println!("{:?}\n",v);
-        let mut n = 0;
-        while n < v.len() {
-            //println!("{}",v[n]);
-            n += 1;
-        }
-    }
-    let _ = channel.wait_close();
-    Ok(())
-}
-
 fn create_session(user: String, host: String, key: String) 
     -> Result<Session, Box<dyn Error>> {
 
@@ -142,7 +117,7 @@ fn create_session(user: String, host: String, key: String)
                               Path::new(&key),
                               None)?;
     let interval = sess.keepalive_send()?;
-    //sess.set_keepalive(true,interval);
+    sess.set_keepalive(true,interval);
     
     Ok(sess) 
 }
@@ -155,13 +130,9 @@ fn run_cmd(sess: &mut Session, cmd: String) -> Result<(),Box<dyn Error>> {
     let v: Vec<String> = s.lines().map(|s| s.to_string()).collect();
     if v.is_empty() != true {
         println!("{:?}\n",v);
-        let mut n = 0;
-        while n < v.len() {
-            //println!("{}",v[n]);
-            n += 1;
-        }
     }
     let _ = channel.wait_close();
+
     Ok(())
 }
 
@@ -192,7 +163,6 @@ fn get_user_info() -> Creds {
         println!("Enter {}:", key[i]);
         let mut input = String::new();
         let mut err = "Failed to read ".to_owned() + key[i];
-        //io::stdin().read_line(&mut input).expect(&err);
         match io::stdin().read_line(&mut input) {
             Ok(val) => {
                 value[i] = input.trim_end().to_owned();
@@ -231,32 +201,22 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
         Err(reason) => {
             creds = get_user_info();
-            println!("{:?}",creds);
-            //println!("{reason}");
         }
     } 
 
     let mut session = create_session(creds.user,creds.hostname,creds.path.into_os_string().into_string().unwrap())?;
 
     let _ = run_cmd(&mut session, "ls /opt/zeek/logs".to_string())?;
-    let _ = run_cmd(&mut session, "ls /var/www".to_string())?;
-    let _ = run_cmd(&mut session, "ls /var/www/endepointe.com".to_string())?;
-    let _ = run_cmd(&mut session, "cat rdb.sh".to_string())?;
-
-    /*
-    let res = connect("ende".to_string(),
-                    "endepointe.com".to_string(),
-                    "keyende".to_string());
-    */
+    //let _ = run_cmd(&mut session, "cat rdb.sh".to_string())?;
 
     // setup terminal
     enable_raw_mode()?;
     let mut stdout = io::stdout();
-    execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
+    execute!(stdout, EnterAlternateScreen)?;
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
 
-    let app = AppState::default(&session);
+    let app = AppState::default(&mut session);
     let res = run_app(&mut terminal, app);
 
     // restores the terminal
@@ -275,13 +235,16 @@ fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn run_app<B: Backend>(terminal: &mut Terminal<B>, 
-                       mut app: AppState) -> io::Result<()> {
+fn run_app<B: Backend>(
+    terminal: &mut Terminal<B>, 
+    mut app: AppState
+) -> io::Result<()> {
     match app.session.authenticated() {
         true => println!("app is authenticated"),
         false => println!("app session is not authenticated"),
         _ => ()
     }
+
     loop {
         terminal.draw(|f| ui(f, &app))?;
         if let Event::Key(key) = event::read()? {
@@ -299,6 +262,8 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>,
                     match key.code {
                         KeyCode::Enter => {
                             app.messages.push(app.input.drain(..).collect());
+                            let _ = run_cmd(app.session, app.messages[app.messages.len()-1].to_string());
+                            //println!("{:?} {}",app.messages, app.messages.len());
                         } 
                         KeyCode::Char(c) => {
                             app.input.push(c);
@@ -311,7 +276,9 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>,
                         }
                         _ => {}
                 },
-                _ => {}
+                _ => {
+                    
+                }
             }
         }
     }
@@ -319,8 +286,8 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>,
 
 fn ui<B: Backend>(f: &mut Frame<B>, app: &AppState) {
     let chunks = Layout::default()
-        .direction(Direction::Vertical)
-        .margin(2)
+        .horizontal_margin(30)
+        .vertical_margin(20)
         .constraints(
             [
                 Constraint::Length(1),
@@ -352,6 +319,7 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &AppState) {
             Style::default(),
         ),
     };
+
     let mut text = Text::from(Line::from(msg));
     text.patch_style(style);
     let help_message = Paragraph::new(text);
@@ -360,10 +328,11 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &AppState) {
     let input = Paragraph::new(app.input.as_str())
         .style(match app.input_mode {
             InputMode::Normal => Style::default(),
-            InputMode::Editing => Style::default().fg(Color::Yellow),
+            InputMode::Editing => Style::default().fg(Color::Green),
         })
         .block(Block::default().borders(Borders::ALL).title("Input"));
     f.render_widget(input, chunks[1]);
+
     match app.input_mode {
         InputMode::Normal =>
             // hide the cursor. `Frame` does this by defaul
