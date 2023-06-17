@@ -1,4 +1,5 @@
 use std::{
+    sync::Arc,
     error::Error, 
     io,
     io::prelude::*, 
@@ -48,6 +49,7 @@ struct AppState<'a> {
     input_mode: InputMode,
     messages: Vec<String>,
     session: &'a mut Session,
+    dir_data: Vec<Arc<&'a str>>,
 }
 
 #[derive(Debug)]
@@ -88,21 +90,10 @@ impl<'a> AppState<'a> {
             input_mode: InputMode::Normal,
             messages: Vec::new(),
             session: s,
+            dir_data: Vec::new(),
         }
     }
 }
-/*
-impl Default for AppState {
-    fn default(s: &Session) -> AppState {
-        AppState {
-            input: String::new(),
-            input_mode: InputMode::Normal,
-            messages: Vec::new(),
-            session: &s,
-        }
-    }
-}
-*/
 
 fn create_session(user: String, host: String, key: String) 
     -> Result<Session, Box<dyn Error>> {
@@ -183,7 +174,19 @@ fn get_user_info() -> Creds {
     }
 }
 
+fn create_tree<'a>() -> Vec<Arc<&'a str>> {
+    let mut list: Vec<Arc<&str>> = Vec::new();
+    list.push("hello".into());
+    list.push("world".into());
+    list
+}
+
 fn main() -> Result<(), Box<dyn Error>> {
+
+    let list = create_tree();
+    for item in list {
+        println!("{item}");
+    }
 
     // check host and private keyfile
     let mut host = Cli::try_parse(); 
@@ -206,7 +209,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let mut session = create_session(creds.user,creds.hostname,creds.path.into_os_string().into_string().unwrap())?;
 
-    let _ = run_cmd(&mut session, "ls /opt/zeek/logs".to_string())?;
+    let _ = run_cmd(&mut session, "tree /opt/zeek/logs".to_string())?;
     //let _ = run_cmd(&mut session, "cat rdb.sh".to_string())?;
 
     // setup terminal
@@ -217,7 +220,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut terminal = Terminal::new(backend)?;
 
     let app = AppState::default(&mut session);
-    let res = run_app(&mut terminal, app);
+    //let res = run_app(&mut terminal, app);
 
     // restores the terminal
     disable_raw_mode()?;
@@ -228,9 +231,11 @@ fn main() -> Result<(), Box<dyn Error>> {
     )?;
     terminal.show_cursor()?;
 
+    /*
     if let Err(err) = res {
         println!("{err:?}");
     }
+    */
 
     Ok(())
 }
