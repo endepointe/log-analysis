@@ -19,7 +19,7 @@ use std::{
 };
 
 use clap::Parser;
-use ssh2::Session;
+//use ssh2::Session;
 
 use ratatui::{
     backend::{CrosstermBackend, Backend},

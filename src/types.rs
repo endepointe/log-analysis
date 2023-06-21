@@ -1,3 +1,4 @@
+
 use std::{
     sync::Arc,
     error::Error, 
@@ -13,31 +14,6 @@ use std::{
 
 use clap::Parser;
 use ssh2::Session;
-
-use ratatui::{
-    backend::{CrosstermBackend, Backend},
-    widgets::{Block, Borders,List,ListItem,Paragraph},
-    layout::{Constraint, Direction, Layout},
-    text::{Line,Span,Text},
-    style::{Color, Modifier, Style},
-    Frame,
-    Terminal
-};
-
-use crossterm::{
-    event::{
-        self, Event, KeyCode, KeyEventKind,
-        DisableMouseCapture, EnableMouseCapture
-    },
-    execute,
-    terminal::{
-        disable_raw_mode, enable_raw_mode,
-        EnterAlternateScreen, LeaveAlternateScreen
-    },
-};
-
-
-use unicode_width::UnicodeWidthStr;
 
 pub enum InputMode {
     Normal,

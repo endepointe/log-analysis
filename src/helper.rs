@@ -13,7 +13,6 @@ use std::{
     string::{String},
 };
 
-use clap::Parser;
 use ssh2::Session;
 
 use ratatui::{
