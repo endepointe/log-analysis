@@ -3,7 +3,7 @@ mod helper;
 mod ui;
 use crate::types::{AppState,InputMode,Creds,Cli};
 use crate::helper::{run_cmd,create_session,get_user_info,create_tree};
-use crate::ui::{ui};
+use crate::ui::{user_input};
 
 use std::{
     error::Error, 
@@ -94,7 +94,7 @@ fn run_app<B: Backend>(
 
     loop {
 
-        terminal.draw(|f| ui(f, &app))?;
+        terminal.draw(|f| user_input(f, &app))?;
         if let Event::Key(key) = event::read()? {
             match app.input_mode {
                 InputMode::Normal => match key.code {

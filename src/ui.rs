@@ -12,7 +12,7 @@ use ratatui::{
     Frame,
 };
 
-pub fn ui<B: Backend>(f: &mut Frame<B>, app: &AppState) {
+pub fn user_input<B: Backend>(f: &mut Frame<B>, app: &AppState) {
     let chunks = Layout::default()
         .horizontal_margin(30)
         .vertical_margin(20)
