@@ -4,12 +4,10 @@ use std::{
     sync::Arc,
     error::Error, 
     io,
-    io::prelude::*, 
-    thread,
-    time,
+    io::Read,
     env::{var_os},
     net::{TcpStream},
-    path::Path,
+    path::{Path,PathBuf},
     string::{String},
 };
 
@@ -109,7 +107,7 @@ pub fn get_user_info() -> Creds {
     Creds {
         user: String::from(&value[0]),
         hostname: String::from(&value[1]),
-        path: std::path::PathBuf::from(&value[2]),
+        path: PathBuf::from(&value[2]),
     }
 }
 
