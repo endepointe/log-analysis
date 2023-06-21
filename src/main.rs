@@ -1,3 +1,10 @@
+mod types;
+mod helper;
+use crate::types::{AppState,InputMode,Creds,Cli};
+use crate::helper::{run_cmd,create_session,get_user_info,create_tree};
+
+
+
 use std::{
     sync::Arc,
     error::Error, 
@@ -39,148 +46,6 @@ use crossterm::{
 
 use unicode_width::UnicodeWidthStr;
 
-enum InputMode {
-    Normal,
-    Editing,
-}
-
-struct AppState<'a> {
-    input: String,
-    input_mode: InputMode,
-    messages: Vec<String>,
-    session: &'a mut Session,
-    dir_data: Vec<Arc<&'a str>>,
-}
-
-#[derive(Debug)]
-#[derive(Parser)]
-struct Cli {
-    // User
-    #[arg(short = 'u', value_name = "user")]
-    user: String,
-    // Hostname
-    #[arg(short = 'n', value_name = "hostname")]
-    hostname: String,
-    // Path
-    #[arg(short = 'p', value_name = "path/to/private/key")]
-    path: std::path::PathBuf,
-}
-
-// mirrors Cli values to give the user the option of providing cli options.
-// ill find a better way but for now, this is fine.
-#[derive(Debug)]
-struct Creds {
-    user: String,
-    hostname: String,
-    path: std::path::PathBuf,
-}
-/*
-impl Creds {
-    fn new(&self) {
-        self.user = String::from("");
-        self.hostname = String::from("");
-        self.path = std::path::PathBuf::from("/");
-    }
-}
-*/
-impl<'a> AppState<'a> {
-    fn default(s: & mut Session) -> AppState {
-        AppState {
-            input: String::new(),
-            input_mode: InputMode::Normal,
-            messages: Vec::new(),
-            session: s,
-            dir_data: Vec::new(),
-        }
-    }
-}
-
-fn create_session(user: String, host: String, key: String) 
-    -> Result<Session, Box<dyn Error>> {
-
-    let tcp = TcpStream::connect(host + ":22")?;
-    let mut sess = Session::new()?;
-
-    sess.set_tcp_stream(tcp);
-    sess.handshake()?;
-    sess.userauth_pubkey_file(&user,
-                              None,
-                              Path::new(&key),
-                              None)?;
-    let interval = sess.keepalive_send()?;
-    sess.set_keepalive(true,interval);
-    
-    Ok(sess) 
-}
-
-fn run_cmd(sess: &mut Session, cmd: String) -> Result<(),Box<dyn Error>> {
-    let mut channel = sess.channel_session()?;
-    channel.exec(&cmd)?;
-    let mut s = String::new();
-    let _ = channel.read_to_string(&mut s)?;
-    let v: Vec<String> = s.lines().map(|s| s.to_string()).collect();
-    if v.is_empty() != true {
-        println!("{:?}\n",v);
-    }
-    let _ = channel.wait_close();
-
-    Ok(())
-}
-
-fn get_home_dir() -> Result<String, Box<dyn Error>> {
-    let key = "HOME";
-    let mut home_dir = String::from("");
-    match var_os(key) {
-        Some(val) => home_dir = val.into_string().unwrap(),
-        None => home_dir = "/".to_string() 
-    }
-    /*
-    let mut list_dir = Command::new("ls");
-    list_dir.current_dir(home);
-    list_dir.status().expect("ls ~ failed");
-    */
-    Ok(home_dir)
-}
-fn get_user_info() -> Creds {
-    // create a proc_macro to create a fn that iterates over future struct members
-    //doc.rust-lang.org/reference/procedural-macros.html/
-    //https://stackoverflow.com/questions/54177438/how-to-programmatically-get-the-number-of-fields-of-a-struct
-    let cli_member_count = 3;
-    let mut i = 0;
-    let key = Vec::from(["username","hostname","key file path"]);
-    let mut value: Vec<String> = Vec::from([String::new(),String::new(),String::new()]);
-    
-    loop {
-        println!("Enter {}:", key[i]);
-        let mut input = String::new();
-        let mut err = "Failed to read ".to_owned() + key[i];
-        match io::stdin().read_line(&mut input) {
-            Ok(val) => {
-                value[i] = input.trim_end().to_owned();
-            }
-            Err(err) => println!("{}",&err), 
-        }
-        i += 1;
-        if i == cli_member_count {
-            println!("Logging in...");
-            break;
-        }
-    }
-    
-    Creds {
-        user: String::from(&value[0]),
-        hostname: String::from(&value[1]),
-        path: std::path::PathBuf::from(&value[2]),
-    }
-}
-
-fn create_tree<'a>() -> Vec<Arc<&'a str>> {
-    let mut list: Vec<Arc<&str>> = Vec::new();
-    list.push("hello".into());
-    list.push("world".into());
-    list
-}
-
 fn main() -> Result<(), Box<dyn Error>> {
 
     let list = create_tree();
@@ -209,18 +74,18 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let mut session = create_session(creds.user,creds.hostname,creds.path.into_os_string().into_string().unwrap())?;
 
-    let _ = run_cmd(&mut session, "tree /opt/zeek/logs".to_string())?;
+    let _ = run_cmd(&mut session, "tree /opt/zeek/logs/current/".to_string())?;
     //let _ = run_cmd(&mut session, "cat rdb.sh".to_string())?;
 
     // setup terminal
     enable_raw_mode()?;
     let mut stdout = io::stdout();
-    execute!(stdout, EnterAlternateScreen)?;
+    execute!(stdout, EnableMouseCapture, EnterAlternateScreen)?;
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
 
     let app = AppState::default(&mut session);
-    //let res = run_app(&mut terminal, app);
+    let res = run_app(&mut terminal, app);
 
     // restores the terminal
     disable_raw_mode()?;
@@ -231,11 +96,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     )?;
     terminal.show_cursor()?;
 
-    /*
     if let Err(err) = res {
         println!("{err:?}");
     }
-    */
 
     Ok(())
 }
@@ -244,13 +107,9 @@ fn run_app<B: Backend>(
     terminal: &mut Terminal<B>, 
     mut app: AppState
 ) -> io::Result<()> {
-    match app.session.authenticated() {
-        true => println!("app is authenticated"),
-        false => println!("app session is not authenticated"),
-        _ => ()
-    }
 
     loop {
+
         terminal.draw(|f| ui(f, &app))?;
         if let Event::Key(key) = event::read()? {
             match app.input_mode {
@@ -364,46 +223,4 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &AppState) {
     let messages = List::new(messages).block(Block::default().borders(Borders::ALL).title("Messages"));
     f.render_widget(messages, chunks[2]);
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
