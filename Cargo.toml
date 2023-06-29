@@ -7,7 +7,6 @@ edition = "2021"
 
 [dependencies]
 clap = { version = "4.0", features = ["derive"] } 
-ssh2 = "0.9"
 ctrlc = "3.4.0"
 crossterm = "0.26"
 ratatui = { version ="0.21.0", features = ["all-widgets"]}
@@ -15,7 +14,8 @@ bitflags = "2.3"
 time = { version = "0.3.11", optional = true, features = ["local-offset"] }
 unicode-width = "0.1"
 serde = "1.0.164"
-google-authenticator = "0.4"
+tungstenite = "0.19.0"
+url = "2.4.0"
 
 [dev-dependencies]
 anyhow = "1.0.71"

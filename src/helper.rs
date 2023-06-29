@@ -12,10 +12,6 @@ use std::{
     string::{String},
 };
 
-use ssh2::{self, Session,PublicKey,CheckResult, HostKeyType, KnownHostKeyFormat, KnownHosts};
-use ssh2::KnownHostFileKind;
-use google_authenticator::GoogleAuthenticator;
-
 use ratatui::{
     backend::{CrosstermBackend, Backend},
     widgets::{Block, Borders,List,ListItem,Paragraph},
@@ -38,53 +34,28 @@ use crossterm::{
     },
 };
 
+use tungstenite::client::connect;
+use tungstenite::protocol::Message;
+use url::Url;
 
 use unicode_width::UnicodeWidthStr;
 
-pub fn create_session(user: String, host: String, key: String) 
-    -> Result<Session, Box<dyn Error>> {
+pub fn connect_ws_client() -> Result<(), Box<dyn Error>> {
+    let (mut socket, response) = connect(Url::parse("ws://localhost:1337/logs").unwrap())
+                                    .expect("WS connection err");
+    println!("Connected to the server");
+    println!("Response HTTP code: {}", response.status());
+    println!("Response contains the following headers:");
+    for (ref header, _value) in response.headers() {
+        println!("*{}", header);
+    }
 
-    let mut tcp = TcpStream::connect(host + ":22")?;
-    let mut sess = Session::new()?;
-
-    let private_key_path = "/path/to/priv/key";
-    let mut file = std::fs::File::open(private_key_path)?;
-    let mut private_key_data = String::new();
-    file.read_to_string(&mut private_key_data)?;
-   
-    sess.set_tcp_stream(tcp);
-    sess.handshake()?;
-
-    sess.userauth_pubkey_memory(&user,
-                              Path::new("/path/to/pub/key").to_str(),
-                              &private_key_data,
-                              None)?;
-
-    let interactive_prompt = |name: &str,
-                     instruction: &str,
-                     prompts: &[ssh2::Prompt<'_>]| -> Vec<String> {
-        let mut resp = Vec::new();
-        for prompt in prompts {
-            println!("{:?}", prompt.text);
-        }
-        resp
-    };
-
-    let interval = sess.keepalive_send()?;
-    sess.set_keepalive(true,interval);
-    
-    Ok(sess) 
-}
-
-pub fn run_cmd(sess: &mut Session, cmd: String) -> Result<(),Box<dyn Error>> {
-    let mut channel = sess.channel_session()?;
-    channel.exec(&cmd)?;
-    let mut s = String::new();
-    let _ = channel.read_to_string(&mut s)?;
-    let v: Vec<String> = s.lines().map(|s| s.to_string()).collect();
-    println!("{s}");
-    let _ = channel.wait_close();
-
+    socket.write_message(Message::Text("hello ws".into())).unwrap();
+    loop {
+        let msg = socket.read_message().expect("Error reading message");
+        println!("Received: {}", msg);
+    }
+    // socket.close(None);
     Ok(())
 }
 

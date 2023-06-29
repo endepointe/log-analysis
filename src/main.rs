@@ -2,7 +2,7 @@ mod types;
 mod helper;
 mod ui;
 use crate::types::{AppState,InputMode,Creds,Cli};
-use crate::helper::{run_cmd,create_session,get_user_info,create_tree};
+use crate::helper::{connect_ws_client,get_user_info};
 use crate::ui::{user_input};
 
 use std::{
@@ -32,11 +32,6 @@ use crossterm::{
 
 fn main() -> Result<(), Box<dyn Error>> {
 
-    let list = create_tree();
-    for item in list {
-        println!("{item}");
-    }
-
     // check host and private keyfile
     let mut host = Cli::try_parse(); 
     let mut creds = Creds {
@@ -56,11 +51,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
     } 
 
-    let mut session = create_session(creds.user,creds.hostname,creds.path.into_os_string().into_string().unwrap())?;
-
-
-    let _ = run_cmd(&mut session, "tree /opt/zeek/logs/current/".to_string())?;
-    //let _ = run_cmd(&mut session, "cat rdb.sh".to_string())?;
+    connect_ws_client();
 
     // setup terminal
     enable_raw_mode()?;
@@ -69,7 +60,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
 
-    let app = AppState::default(&mut session);
+    let app = AppState::default();
     let res = run_app(&mut terminal, app);
 
     // restores the terminal
@@ -111,7 +102,6 @@ fn run_app<B: Backend>(
                     match key.code {
                         KeyCode::Enter => {
                             app.messages.push(app.input.drain(..).collect());
-                            let _ = run_cmd(app.session, app.messages[app.messages.len()-1].to_string());
                             //println!("{:?} {}",app.messages, app.messages.len());
                         } 
                         KeyCode::Char(c) => {

@@ -12,19 +12,16 @@ use std::{
 };
 
 use clap::Parser;
-use ssh2::Session;
 
 pub enum InputMode {
     Normal,
     Editing,
 }
 
-pub struct AppState<'a> {
+pub struct AppState {
     pub input: String,
     pub input_mode: InputMode,
     pub messages: Vec<String>,
-    pub session: &'a mut Session,
-    pub dir_data: Vec<Arc<&'a str>>,
 }
 
 #[derive(Debug)]
@@ -50,17 +47,12 @@ pub struct Creds {
     pub path: std::path::PathBuf,
 }
 
-impl<'a> AppState<'a> {
-    pub fn default(s: & mut Session) -> AppState {
+impl AppState {
+    pub fn default() -> AppState {
         AppState {
             input: String::new(),
             input_mode: InputMode::Normal,
             messages: Vec::new(),
-            session: s,
-            dir_data: Vec::new(),
         }
     }
 }
-
-
-
