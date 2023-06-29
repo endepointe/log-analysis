@@ -15,7 +15,7 @@ bitflags = "2.3"
 time = { version = "0.3.11", optional = true, features = ["local-offset"] }
 unicode-width = "0.1"
 serde = "1.0.164"
-
+google-authenticator = "0.4"
 
 [dev-dependencies]
 anyhow = "1.0.71"

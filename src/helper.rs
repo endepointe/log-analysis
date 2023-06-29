@@ -5,13 +5,16 @@ use std::{
     error::Error, 
     io,
     io::Read,
+    io::prelude::*,
     env::{var_os},
     net::{TcpStream},
     path::{Path,PathBuf},
     string::{String},
 };
 
-use ssh2::Session;
+use ssh2::{self, Session,PublicKey,CheckResult, HostKeyType, KnownHostKeyFormat, KnownHosts};
+use ssh2::KnownHostFileKind;
+use google_authenticator::GoogleAuthenticator;
 
 use ratatui::{
     backend::{CrosstermBackend, Backend},
@@ -41,15 +44,32 @@ use unicode_width::UnicodeWidthStr;
 pub fn create_session(user: String, host: String, key: String) 
     -> Result<Session, Box<dyn Error>> {
 
-    let tcp = TcpStream::connect(host + ":22")?;
+    let mut tcp = TcpStream::connect(host + ":22")?;
     let mut sess = Session::new()?;
 
+    let private_key_path = "/path/to/priv/key";
+    let mut file = std::fs::File::open(private_key_path)?;
+    let mut private_key_data = String::new();
+    file.read_to_string(&mut private_key_data)?;
+   
     sess.set_tcp_stream(tcp);
     sess.handshake()?;
-    sess.userauth_pubkey_file(&user,
-                              None,
-                              Path::new(&key),
+
+    sess.userauth_pubkey_memory(&user,
+                              Path::new("/path/to/pub/key").to_str(),
+                              &private_key_data,
                               None)?;
+
+    let interactive_prompt = |name: &str,
+                     instruction: &str,
+                     prompts: &[ssh2::Prompt<'_>]| -> Vec<String> {
+        let mut resp = Vec::new();
+        for prompt in prompts {
+            println!("{:?}", prompt.text);
+        }
+        resp
+    };
+
     let interval = sess.keepalive_send()?;
     sess.set_keepalive(true,interval);
     

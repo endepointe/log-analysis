@@ -58,6 +58,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let mut session = create_session(creds.user,creds.hostname,creds.path.into_os_string().into_string().unwrap())?;
 
+
     let _ = run_cmd(&mut session, "tree /opt/zeek/logs/current/".to_string())?;
     //let _ = run_cmd(&mut session, "cat rdb.sh".to_string())?;
 

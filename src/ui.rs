@@ -12,6 +12,13 @@ use ratatui::{
     Frame,
 };
 
+pub fn main_menu<B: Backend>(f: &mut Frame<B>, app: &AppState) {
+    let side_menu = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Min(1)].as_ref());
+
+}
+
 pub fn user_input<B: Backend>(f: &mut Frame<B>, app: &AppState) {
     let chunks = Layout::default()
         .horizontal_margin(30)
