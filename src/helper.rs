@@ -40,8 +40,11 @@ use url::Url;
 
 use unicode_width::UnicodeWidthStr;
 
-pub fn connect_ws_client() -> Result<(), Box<dyn Error>> {
-    let (mut socket, response) = connect(Url::parse("ws://localhost:1337/logs").unwrap())
+pub fn connect_ws_client(s: String) -> Result<(), Box<dyn Error>> {
+    let mut url = String::from("ws://localhost:1337/");
+    url.push_str(&s);
+
+    let (mut socket, response) = connect(Url::parse(&url).unwrap())
                                     .expect("WS connection err");
     println!("Connected to the server");
     println!("Response HTTP code: {}", response.status());
@@ -55,7 +58,7 @@ pub fn connect_ws_client() -> Result<(), Box<dyn Error>> {
         let msg = socket.read_message().expect("Error reading message");
         println!("Received: {}", msg);
     }
-    // socket.close(None);
+    socket.close(None);
     Ok(())
 }
 

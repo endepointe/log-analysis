@@ -51,7 +51,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
     } 
 
-    connect_ws_client();
+    connect_ws_client(creds.user);
 
     // setup terminal
     enable_raw_mode()?;
