@@ -34,32 +34,26 @@ use crossterm::{
     },
 };
 
-use tungstenite::client::connect;
-use tungstenite::protocol::Message;
+use futures_util::{future, pin_mut, SinkExt, StreamExt};
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
+use tokio_native_tls::TlsConnector;
+use unicode_width::UnicodeWidthStr;
 use url::Url;
 
-use unicode_width::UnicodeWidthStr;
-
-pub fn connect_ws_client(s: String) -> Result<(), Box<dyn Error>> {
-    let mut url = String::from("ws://localhost:1337/");
-    url.push_str(&s);
-
-    let (mut socket, response) = connect(Url::parse(&url).unwrap())
-                                    .expect("WS connection err");
-    println!("Connected to the server");
-    println!("Response HTTP code: {}", response.status());
-    println!("Response contains the following headers:");
-    for (ref header, _value) in response.headers() {
-        println!("*{}", header);
+pub async fn connect_ws_client(s: String) {
+    let mut url = String::from("ws://localhost:5678/logs");
+    let (mut ws_stream, unk) = connect_async(Url::parse(&url).unwrap())
+                                    .await.expect("WS connection err");
+    println!("Connected to the server: {:?}", ws_stream.get_config());
+    println!("unk object: {:#?}", unk);
+    ws_stream.send(Message::Text("hello from ws client".to_string())).await.unwrap();
+    while let Some(message) = ws_stream.next().await {
+        let message = message.unwrap();
+        if message.is_text() || message.is_binary() {
+            println!("Received: {}", message);
+        }
     }
-
-    socket.write_message(Message::Text("hello ws".into())).unwrap();
-    loop {
-        let msg = socket.read_message().expect("Error reading message");
-        println!("Received: {}", msg);
-    }
-    socket.close(None);
-    Ok(())
 }
 
 pub fn get_home_dir() -> Result<String, Box<dyn Error>> {

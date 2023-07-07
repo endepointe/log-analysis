@@ -30,8 +30,10 @@ use crossterm::{
     },
 };
 
-fn main() -> Result<(), Box<dyn Error>> {
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn Error>> {
 
+    /*
     // check host and private keyfile
     let mut host = Cli::try_parse(); 
     let mut creds = Creds {
@@ -50,8 +52,9 @@ fn main() -> Result<(), Box<dyn Error>> {
             creds = get_user_info();
         }
     } 
+    */
 
-    connect_ws_client(creds.user);
+    connect_ws_client("ende".to_string()).await;
 
     // setup terminal
     enable_raw_mode()?;

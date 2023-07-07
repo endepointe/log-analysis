@@ -15,6 +15,10 @@ time = { version = "0.3.11", optional = true, features = ["local-offset"] }
 unicode-width = "0.1"
 serde = "1.0.164"
 tungstenite = "0.19.0"
+tokio-tungstenite = "0.19.0"
+tokio-native-tls = "0.3.1"
+futures-util = "0.3.28"
+tokio = { version = "1", features = ["full"] } 
 url = "2.4.0"
 
 [dev-dependencies]
