@@ -5,6 +5,7 @@ use actix_web::{web, App, HttpServer, Responder};
 use std::fs::File;
 use std::io::{self, Read};
 use flate2::read::GzDecoder;
+use std::io::Write;
 
 struct Query;
 
@@ -12,16 +13,32 @@ struct Query;
 impl Query {
     async fn zeek_logs(&self, _ctx: &Context<'_>) -> Result<String> {
         // Define the path to the Zeek log file
-        let path = "logs/2024-07-03/ssh.02:00:00-03:00:00.log.gz";
+        let path = "zeek-test-logs/2024-07-03/ssh.02:00:00-03:00:00.log.gz";
         // Read and decompress the file
         let file = File::open(path).map_err(|e| async_graphql::Error::new(e.to_string()))?;
         let mut gz = GzDecoder::new(file);
         let mut data = String::new();
         gz.read_to_string(&mut data).map_err(|e| async_graphql::Error::new(e.to_string()))?;
+        let new_data = data.split_whitespace().collect::<Vec<&str>>().join("\n");
+        println!("{:?}", new_data);
         // Return the file contents
-        Ok(data)
+        Ok(data.to_string())
+    }
+
+    // write a query that spawns a zcat and jq process on the path and returns the output as json
+    async fn zeek_logs_parsed(&self, _ctx: &Context<'_>) -> Result<String> {
+        let path = "zeek-test-logs/2024-07-03/ssh.02:00:00-03:00:00.log.gz";
+        let output = std::process::Command::new("zcat")
+            .arg(path)
+            .output()
+            .expect("failed to execute process");
+        let output = std::str::from_utf8(&output.stdout).unwrap();
+        //let output = output.split_whitespace().collect::<Vec<&str>>().join("\n");
+        println!("{:?}", output);
+        Ok(output.to_string())
     }
 }
+
 
 type AppSchema = Schema<Query, EmptyMutation, EmptySubscription>;
 
