@@ -100,6 +100,8 @@ The system is divided into two main components:
 ## Testing and Optimization
 
 - Test with various query filters to ensure robustness.
+- curl -X POST http://localhost:8080/graphql -H "Content-Type: application/json" -d '{"query": "{ zeekLogs }"}'
+
 - Optimize log querying for performance, potentially using advanced log processing tools or indexing strategies.
 
 ## Contributing

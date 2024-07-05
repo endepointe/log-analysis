@@ -12,30 +12,17 @@ struct Query;
 #[Object]
 impl Query {
     async fn zeek_logs(&self, _ctx: &Context<'_>) -> Result<String> {
-        // Define the path to the Zeek log file
-        let path = "zeek-test-logs/2024-07-03/ssh.02:00:00-03:00:00.log.gz";
-        // Read and decompress the file
-        let file = File::open(path).map_err(|e| async_graphql::Error::new(e.to_string()))?;
-        let mut gz = GzDecoder::new(file);
-        let mut data = String::new();
-        gz.read_to_string(&mut data).map_err(|e| async_graphql::Error::new(e.to_string()))?;
-        let new_data = data.split_whitespace().collect::<Vec<&str>>().join("\n");
-        println!("{:?}", new_data);
-        // Return the file contents
-        Ok(data.to_string())
-    }
-
-    // write a query that spawns a zcat and jq process on the path and returns the output as json
-    async fn zeek_logs_parsed(&self, _ctx: &Context<'_>) -> Result<String> {
         let path = "zeek-test-logs/2024-07-03/ssh.02:00:00-03:00:00.log.gz";
         let output = std::process::Command::new("zcat")
             .arg(path)
             .output()
             .expect("failed to execute process");
         let output = std::str::from_utf8(&output.stdout).unwrap();
-        //let output = output.split_whitespace().collect::<Vec<&str>>().join("\n");
-        println!("{:?}", output);
         Ok(output.to_string())
+    }
+    async fn add(&self, a: i32, b: i32) -> i32 
+    {
+        a + b
     }
 }
 
@@ -47,43 +34,20 @@ async fn main() -> std::io::Result<()> {
     // Build the GraphQL schema
     let schema = Schema::build(Query, EmptyMutation, EmptySubscription).finish();
 
-    // Configure and start the Actix-web server
     HttpServer::new(move || {
         App::new()
             .app_data(web::Data::new(schema.clone()))
             .service(web::resource("/graphql").route(web::post().to(graphql_handler)))
     })
-    .bind("0.0.0.0:8080")? // Bind to the appropriate IP and port
+    .bind("0.0.0.0:8080")?
     .run()
     .await
 }
 
 async fn graphql_handler(schema: web::Data<AppSchema>, req: GraphQLRequest) -> GraphQLResponse {
     // Execute the GraphQL request and return the response
-    schema.execute(req.into_inner()).await.into()
+    //schema.execute(req.into_inner()).await.into()
+    schema.execute("{add(a: 10, b: 20 }").await.into()
 }
 
 
-
-/*
-use actix_web::{get, web, App, HttpServer, Responder};
-
-#[get("/{name}")]
-async fn greet(name: web::Path<String>) -> impl Responder 
-{
-    format!("Hello {}", name)
-}
-
-
-#[actix_web::main]
-async fn
-main() -> std::io::Result<()> 
-{
-    HttpServer::new(|| {
-        App::new().service(greet)
-    })
-    .bind(("127.0.0.1", 8080))?
-    .run()
-    .await
-}
-*/
