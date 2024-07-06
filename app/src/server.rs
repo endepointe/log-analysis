@@ -24,8 +24,10 @@ impl Query {
     {
         a + b
     }
+    async fn hello(&self) -> String {
+        "world".to_string()
+    }
 }
-
 
 type AppSchema = Schema<Query, EmptyMutation, EmptySubscription>;
 
@@ -44,10 +46,34 @@ async fn main() -> std::io::Result<()> {
     .await
 }
 
-async fn graphql_handler(schema: web::Data<AppSchema>, req: GraphQLRequest) -> GraphQLResponse {
-    // Execute the GraphQL request and return the response
-    //schema.execute(req.into_inner()).await.into()
-    schema.execute("{add(a: 10, b: 20 }").await.into()
+async fn hello_handler(schema: web::Data<AppSchema>, req: GraphQLRequest) -> GraphQLResponse {
+    schema.execute("{ hello }").await.into()
 }
 
 
+async fn graphql_handler(schema: web::Data<AppSchema>, req: GraphQLRequest) -> GraphQLResponse {
+    // Execute the GraphQL request and return the response
+    schema.execute(req.into_inner()).await.into()
+    //schema.execute("{add(a: 10, b: 20 }").await.into()
+}
+
+
+mod tests 
+{
+    #[test]
+    fn test_graphql() 
+    {
+        let res = std::process::Command::new("curl")
+            .arg("-X")
+            .arg("POST")
+            .arg("http://localhost:8080/graphql")
+            .arg("-H")
+            .arg("Content-Type: application/json")
+            .arg("-d")
+            .arg(r#"{"query":"{ zeekLogs }"}"#)
+            .output()
+            .expect("failed to execute process");
+        let output = std::str::from_utf8(&res.stdout).unwrap();
+        println!("{}", output);
+    }
+}
