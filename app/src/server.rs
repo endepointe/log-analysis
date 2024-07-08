@@ -7,6 +7,7 @@ use std::io::{self, Read};
 use flate2::read::GzDecoder;
 use std::io::Write;
 use std::sync::Mutex;
+use openssl::ssl::{SslAcceptor, SslFiletype, SslMethod};
 
 struct Query;
 struct AppState {
@@ -31,6 +32,10 @@ type AppSchema = Schema<Query, EmptyMutation, EmptySubscription>;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+    let mut ssl_builder = SslAcceptor::mozilla_intermediate(SslMethod::tls()).unwrap();
+    ssl_builder.set_private_key_file("key.pem", SslFiletype::PEM).unwrap();
+    ssl_builder.set_certificate_chain_file("cert.pem").unwrap();
+
     let visits = web::Data::new(AppState { visits: 1000.into() });
     // Build the GraphQL schema
     let schema = Schema::build(Query, EmptyMutation, EmptySubscription)
@@ -44,7 +49,7 @@ async fn main() -> std::io::Result<()> {
             .service(web::resource("/hello").route(web::get().to(hello_handler)))
             .service(web::resource("/graphql").route(web::post().to(graphql_handler)))
     })
-    .bind("0.0.0.0:8080")?
+    .bind_openssl("0.0.0.0:8080", ssl_builder)?
     .run()
     .await
 }
@@ -53,7 +58,7 @@ async fn hello_handler(schema: web::Data<AppState>) -> impl Responder {
     println!("ctx: {:?}", schema.visits);
     let mut visits = schema.visits.lock().unwrap();
     *visits += 1;
-    format!("Hello, world! Visits: {}", visits)
+    format!("Hello, world! Visits: {}\n", visits)
 }
 
 
