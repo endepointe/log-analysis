@@ -9,15 +9,24 @@ use std::io::Write;
 use std::sync::Mutex;
 use openssl::ssl::{SslAcceptor, SslFiletype, SslMethod};
 
-struct Query;
-struct AppState {
+struct AppState 
+{
     visits: Mutex<i32>,
 }
 
+struct LogInfo
+{
+    types: Mutex<std::collections::HashSet<String>>
+}
+
+struct Query;
 #[Object]
-impl Query {
-    async fn zeek_logs(&self, _ctx: &Context<'_>, src_ip: String) -> Result<String> {
+impl Query 
+{
+    async fn zeeklogs(&self, _ctx: &Context<'_>, a: i32, b: i32) -> Result<String> 
+    {
         println!("ctx: {:?}", _ctx.data::<String>());
+        println!("a: {}, b: {}", a, b);
         let path = "zeek-test-logs/2024-07-03/ssh.02:00:00-03:00:00.log.gz";
         let output = std::process::Command::new("zcat")
             .arg(path)
@@ -26,18 +35,24 @@ impl Query {
         let output = std::str::from_utf8(&output.stdout).unwrap();
         Ok(output.to_string())
     }
+    async fn src(&self, _ctx: &Context<'_>) -> Result<String>
+    {
+        Ok(String::from("src data returned"))
+    }
 }
 
 type AppSchema = Schema<Query, EmptyMutation, EmptySubscription>;
 
 #[actix_web::main]
-async fn main() -> std::io::Result<()> {
+async fn main() -> std::io::Result<()> 
+{
     let mut ssl_builder = SslAcceptor::mozilla_intermediate(SslMethod::tls()).unwrap();
     ssl_builder.set_private_key_file("key.pem", SslFiletype::PEM).unwrap();
     ssl_builder.set_certificate_chain_file("cert.pem").unwrap();
 
     let visits = web::Data::new(AppState { visits: 1000.into() });
-    // Build the GraphQL schema
+    let log_info = web::Data::new(LogInfo { types: std::collections::HashSet::new().into() });
+
     let schema = Schema::build(Query, EmptyMutation, EmptySubscription)
         .data("data_hello".to_string())
         .finish();
@@ -46,6 +61,7 @@ async fn main() -> std::io::Result<()> {
         App::new()
             .app_data(web::Data::new(schema.clone()))
             .app_data(visits.clone())
+            .app_data(log_info.clone())
             .service(web::resource("/hello").route(web::get().to(hello_handler)))
             .service(web::resource("/graphql").route(web::post().to(graphql_handler)))
     })
@@ -54,13 +70,34 @@ async fn main() -> std::io::Result<()> {
     .await
 }
 
-async fn hello_handler(schema: web::Data<AppState>) -> impl Responder {
+async fn hello_handler(schema: web::Data<AppState>) -> impl Responder 
+{
     println!("ctx: {:?}", schema.visits);
     let mut visits = schema.visits.lock().unwrap();
     *visits += 1;
     format!("Hello, world! Visits: {}\n", visits)
 }
 
+fn get_zeek_header(path: &str) -> std::io::Result<()>
+{
+    let path : &std::path::Path = std::path::Path::new(path);
+    let contents = std::fs::read_dir(&path);
+    if contents.is_err() 
+    {
+        println!("ERROR(get_zeek_header): check file path");
+        std::process::exit(1); // temp
+    }
+    for content in contents?
+    {
+        let dir = content?;
+        let _file = dir.file_name();
+        let f = _file.to_str().expect("failed to convert to string").split(".").collect::<Vec<&str>>();
+        let f = f[0];
+        println!("{}", f);
+    }
+
+    Ok(())
+}
 
 async fn graphql_handler(schema: web::Data<AppSchema>, req: GraphQLRequest) -> GraphQLResponse {
     schema.execute(req.into_inner()).await.into()
@@ -73,25 +110,33 @@ mod tests
     fn test_graphql() 
     {
         let res = std::process::Command::new("curl")
+            .arg("--cacert")
+            .arg("cert.pem")
             .arg("-X")
             .arg("POST")
-            .arg("http://localhost:8080/graphql")
+            .arg("https://localhost:8080/graphql")
             .arg("-H")
             .arg("Content-Type: application/json")
             .arg("-d")
-            .arg(r#"{"query":"{ zeekLogs }"}"#)
+            .arg(r#"{"query":"{ zeeklogs }"}"#)
             .output()
             .expect("failed to execute process");
         let output = std::str::from_utf8(&res.stdout).unwrap();
-        println!("{}", output);
+        //println!("{}", output);
     }
+    #[test]
+    fn test_get_zeek_header()
+    {
+        let _ = super::get_zeek_header("zeek-test-logs/2024-07-02/");
+    }
+
     #[test]
     fn test_hello() 
     {
         let res = std::process::Command::new("curl")
-            .arg("-X")
-            .arg("GET")
-            .arg("http://localhost:8080/hello")
+            .arg("--cacert")
+            .arg("cert.pem")
+            .arg("https://localhost:8080/hello")
             .output()
             .expect("failed to execute process");
         let output = std::str::from_utf8(&res.stdout).unwrap();
