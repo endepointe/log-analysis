@@ -1,5 +1,8 @@
 // now learn how this all works
-use async_graphql::{Schema, Context, Object, Result, EmptyMutation, EmptySubscription};
+use async_graphql::{Schema, Context, Object, 
+    ComplexObject, SimpleObject, Request, Result, 
+    EmptyMutation, EmptySubscription
+};
 use async_graphql_actix_web::{GraphQLRequest, GraphQLResponse};
 use actix_web::{web, App, HttpServer, Responder};
 use std::fs::File;
@@ -23,10 +26,9 @@ struct Query;
 #[Object]
 impl Query 
 {
-    async fn zeeklogs(&self, _ctx: &Context<'_>, a: i32, b: i32) -> Result<String> 
+    async fn zeeklogs(&self, _ctx: &Context<'_>) -> Result<String> 
     {
         println!("ctx: {:?}", _ctx.data::<String>());
-        println!("a: {}, b: {}", a, b);
         let path = "zeek-test-logs/2024-07-03/ssh.02:00:00-03:00:00.log.gz";
         let output = std::process::Command::new("zcat")
             .arg(path)
@@ -35,9 +37,23 @@ impl Query
         let output = std::str::from_utf8(&output.stdout).unwrap();
         Ok(output.to_string())
     }
-    async fn src(&self, _ctx: &Context<'_>) -> Result<String>
+    async fn zeekdata(&self, _ctx: &Context<'_>) -> Result<ZeekData> 
     {
-        Ok(String::from("src data returned"))
+        Ok(ZeekData { src_ip: "127.0.0.1".to_string() })
+    }
+}
+#[derive(SimpleObject)]
+#[graphql(complex)]
+struct ZeekData 
+{
+    src_ip: String,
+}
+#[ComplexObject]
+impl ZeekData 
+{
+    async fn srcip(&self) -> String 
+    {
+        self.src_ip.clone()
     }
 }
 
@@ -93,7 +109,7 @@ fn get_zeek_header(path: &str) -> std::io::Result<()>
         let _file = dir.file_name();
         let f = _file.to_str().expect("failed to convert to string").split(".").collect::<Vec<&str>>();
         let f = f[0];
-        println!("{}", f);
+        //println!("{}", f);
     }
 
     Ok(())
@@ -102,7 +118,6 @@ fn get_zeek_header(path: &str) -> std::io::Result<()>
 async fn graphql_handler(schema: web::Data<AppSchema>, req: GraphQLRequest) -> GraphQLResponse {
     schema.execute(req.into_inner()).await.into()
 }
-
 
 mod tests 
 {
@@ -118,11 +133,11 @@ mod tests
             .arg("-H")
             .arg("Content-Type: application/json")
             .arg("-d")
-            .arg(r#"{"query":"{ zeeklogs }"}"#)
+            .arg(r#"{"query":"{ zeekdata { srcip } }"}"#)
             .output()
             .expect("failed to execute process");
         let output = std::str::from_utf8(&res.stdout).unwrap();
-        //println!("{}", output);
+        println!("{}", output);
     }
     #[test]
     fn test_get_zeek_header()
