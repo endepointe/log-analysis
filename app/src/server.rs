@@ -39,21 +39,28 @@ impl Query
     }
     async fn zeekdata(&self, _ctx: &Context<'_>) -> Result<ZeekData> 
     {
-        Ok(ZeekData { src_ip: "127.0.0.1".to_string() })
+        Ok(ZeekData { name: "dns".to_string(), src_ip: "127.0.0.1".to_string() })
     }
 }
+
 #[derive(SimpleObject)]
 #[graphql(complex)]
 struct ZeekData 
 {
+    name: String,
     src_ip: String,
 }
+
 #[ComplexObject]
 impl ZeekData 
 {
-    async fn srcip(&self) -> String 
+    async fn source_ip(&self) -> String 
     {
         self.src_ip.clone()
+    }
+    async fn log_name(&self) -> String 
+    {
+        self.name.clone()
     }
 }
 
@@ -133,12 +140,58 @@ mod tests
             .arg("-H")
             .arg("Content-Type: application/json")
             .arg("-d")
-            .arg(r#"{"query":"{ zeekdata { srcip } }"}"#)
+            .arg(r#"{"query":"{ zeekdata { logName sourceIp } }"}"#)
+            .output()
+            .expect("failed to execute process");
+        let output = std::str::from_utf8(&res.stdout).unwrap();
+        println!("{}", output);
+
+        let res = std::process::Command::new("curl")
+            .arg("--cacert")
+            .arg("cert.pem")
+            .arg("-X")
+            .arg("POST")
+            .arg("https://localhost:8080/graphql")
+            .arg("-H")
+            .arg("Content-Type: application/json")
+            .arg("-d")
+            .arg(r#"{"query":"{ zeekdata { logName } }"}"#)
+            .output()
+            .expect("failed to execute process");
+        let output = std::str::from_utf8(&res.stdout).unwrap();
+        println!("{}", output);
+ 
+        let res = std::process::Command::new("curl")
+            .arg("--cacert")
+            .arg("cert.pem")
+            .arg("-X")
+            .arg("POST")
+            .arg("https://localhost:8080/graphql")
+            .arg("-H")
+            .arg("Content-Type: application/json")
+            .arg("-d")
+            .arg(r#"{"query":"{ zeekdata { sourceIp } }"}"#)
+            .output()
+            .expect("failed to execute process");
+        let output = std::str::from_utf8(&res.stdout).unwrap();
+        println!("{}", output);
+ 
+        let res = std::process::Command::new("curl")
+            .arg("--cacert")
+            .arg("cert.pem")
+            .arg("-X")
+            .arg("POST")
+            .arg("https://localhost:8080/graphql")
+            .arg("-H")
+            .arg("Content-Type: application/json")
+            .arg("-d")
+            .arg(r#"{"query":"{ zeekdata }"}"#)
             .output()
             .expect("failed to execute process");
         let output = std::str::from_utf8(&res.stdout).unwrap();
         println!("{}", output);
     }
+
     #[test]
     fn test_get_zeek_header()
     {

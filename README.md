@@ -34,12 +34,13 @@ This project aims to provide an efficient way to analyze Zeek logs remotely. By 
 The system is divided into two main components:
 
 1. **Remote Server Service**: A Rust-based service using Actix-web to handle incoming queries and process log data.
+    
 2. **Client Application**: A Tauri-based client application that sends queries to the remote server and displays the results.
 
 ## Prerequisites
 
 - Rust (latest stable version)
-- Node.js (for Tauri)
+- pnpm (for Tauri)
 - Zeek installed on the remote server
 
 ## Setup
@@ -49,7 +50,7 @@ The system is divided into two main components:
 1. **Clone the repository**:
    ```bash
    git clone https://github.com/yourusername/zeek-log-analyzer.git
-   cd zeek-log-analyzer/server
+   cd zeek-log-analyzer/app/server
    ```
 
 2. **Install dependencies**:
@@ -75,12 +76,12 @@ The system is divided into two main components:
 
 2. **Install dependencies**:
    ```bash
-   yarn tauri dev
+   pnpm tauri dev
    ```
 
 3. **Build and run the client**:
    ```bash
-   yarn tauri build
+   pnpm tauri build
    ./target/release/bundle/your-app-name
    ```
 
