@@ -64,6 +64,38 @@ impl ZeekData
     }
 }
 
+#[derive(Debug)]
+struct TsvFormat
+{
+    seperator: String,
+    set_seperator: String,
+    unset_field: String,
+    path: String,
+    open: String,
+    fields: Vec<String>,
+    types: Vec<String>,
+}
+impl TsvFormat
+{
+    fn new(p : &std::path::Path) -> Self 
+    {
+        for content in p.read_dir().expect("some sort of path reading issue")
+        {
+            println!("{:?}", content);
+        }
+        TsvFormat 
+        {
+            seperator: String::from("seperator"),
+            set_seperator: String::from("set the seperator"),
+            unset_field: String::from("unset field character"),
+            path: String::from("name of the type of zeek log"),
+            open: String::from("creation date"),
+            fields: Vec::new(),
+            types: Vec::new(),
+        }
+    }
+}
+
 type AppSchema = Schema<Query, EmptyMutation, EmptySubscription>;
 
 #[actix_web::main]
@@ -210,4 +242,14 @@ mod tests
         let output = std::str::from_utf8(&res.stdout).unwrap();
         println!("{}", output);
     }
+    
+    #[test]
+    fn test_tsv_format()
+    {
+        use crate::TsvFormat;
+        let log_path = std::path::Path::new("zeek-test-logs/2024-07-02/");
+        let s : TsvFormat = TsvFormat::new(&log_path); 
+        println!("{:?}", s);
+    }
+
 }
