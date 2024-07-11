@@ -158,6 +158,16 @@ async fn graphql_handler(schema: web::Data<AppSchema>, req: GraphQLRequest) -> G
     schema.execute(req.into_inner()).await.into()
 }
 
+fn increment<'a>(val: &'a mut u32)
+{
+    *val += 1;
+}
+
+fn print_val<'a>(val: &'a u32)
+{
+    println!("print_val : val is {}",val);
+}
+
 mod tests 
 {
     #[test]
@@ -251,5 +261,38 @@ mod tests
         let s : TsvFormat = TsvFormat::new(&log_path); 
         println!("{:?}", s);
     }
-
+    
+    #[test]
+    fn test_lifetime()
+    {
+        use crate::increment;
+        use crate::print_val;
+        let mut x = 10; 
+        print_val(&x);
+        increment(&mut x);
+        print_val(&x);
+    }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
