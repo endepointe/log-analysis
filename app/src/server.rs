@@ -147,7 +147,6 @@ impl LogHeader
                     } 
                     buffer.push(c);
                 }
-                println!("");
             }
             Err(e) => {
                 eprintln!("{}",e.valid_up_to());
@@ -343,10 +342,17 @@ mod tests
         let end_time = "01:00:00";
         let log_gz = "log.gz";
         let header = format!("{}/{}.{}-{}.{}",date_dir, log_type, start_time, end_time, log_gz);
-        println!("read zeek log header {}", header);
         let date_dir = std::path::Path::new(&header);
         let dir = LogHeader::read_header(&date_dir);
-        println!("{dir:?}");
+        assert!(dir.separator.is_whitespace());
+        assert!(dir.set_separator.len() > 0);
+        assert!(dir.empty_field.len() > 0);
+        assert!(dir.unset_field.len() > 0);
+        assert!(dir.path.len() > 0);
+        assert!(dir.open.len() > 0);
+        assert!(dir.fields.len() > 0);
+        assert!(dir.types.len() > 0);
+        //println!("{dir:?}");
     }
 
     #[test]
