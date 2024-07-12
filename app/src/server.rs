@@ -65,33 +65,105 @@ impl ZeekData
 }
 
 #[derive(Debug)]
-struct TsvFormat
+struct LogHeader
 {
-    seperator: String,
-    set_seperator: String,
+    separator: char,
+    set_separator: String,
+    empty_field: String,
     unset_field: String,
     path: String,
     open: String,
     fields: Vec<String>,
     types: Vec<String>,
 }
-impl TsvFormat
+impl LogHeader
 {
-    fn new(p : &std::path::Path) -> Self 
+    fn read_header(p : &std::path::Path) -> Self 
     {
-        for content in p.read_dir().expect("some sort of path reading issue")
+        let output = std::process::Command::new("zcat")
+            .arg(&p)
+            .output()
+            .expect("failed to zcat the log file");
+        let log_header = output.stdout;
+
+        let mut pos : u8 = 0;
+        let mut separator : char = ' ';
+        let mut set_separator = String::new();
+        let mut empty_field = String::new();
+        let mut unset_field = String::new();
+        let mut path = String::new();
+        let mut open = String::new();
+        let mut fields = Vec::<String>::new();
+        let mut types = Vec::<String>::new();
+
+        match std::str::from_utf8(&log_header) 
         {
-            println!("{:?}", content);
+            Ok(v) => {
+                let mut buffer = String::new();
+                for c in v.chars() {
+                    if c == '\n' { 
+                        match pos 
+                        {
+                            0 => {
+                                let result = buffer.split(' ').collect::<Vec<&str>>()[1].strip_prefix("\\x");
+                                let result = u8::from_str_radix(result.unwrap(), 16)
+                                    .expect("LOG_SEPARATER_CHAR: ");
+                                separator = char::from(result);
+                            }
+                            1 => {
+                                set_separator = buffer.split(separator).collect::<Vec<_>>()[1].to_string();
+                            }
+                            2 => {
+                                empty_field = buffer.split(separator).collect::<Vec<_>>()[1].to_string();
+                            }
+                            3 => {
+                                unset_field = buffer.split(separator).collect::<Vec<_>>()[1].to_string();
+                            }
+                            4 => {
+                                path = buffer.split(separator).collect::<Vec<_>>()[1].to_string();
+                            }
+                            5 => {
+                                open = buffer.split(separator).collect::<Vec<_>>()[1].to_string();
+                            }
+                            6 => {
+                                let s = buffer.split(separator).collect::<Vec<_>>();
+                                for i in 1..s.len() 
+                                {
+                                    fields.push(s[i].to_string());
+                                }
+                            }
+                            7 => {
+                                let s = buffer.split(separator).collect::<Vec<_>>();
+                                for i in 1..s.len() 
+                                {
+                                    types.push(s[i].to_string());
+                                }
+                            }
+                            _ => {break;}
+                        }
+                        let n = buffer.split(separator).collect::<Vec<&str>>();
+                        println!("n: {n:?}");
+                        buffer.clear();
+                        pos += 1; 
+                        continue; // ignore the newline char.
+                    } 
+                    buffer.push(c);
+                }
+                println!("");
+            }
+            Err(e) => {
+                eprintln!("{}",e.valid_up_to());
+            }
         }
-        TsvFormat 
-        {
-            seperator: String::from("seperator"),
-            set_seperator: String::from("set the seperator"),
-            unset_field: String::from("unset field character"),
-            path: String::from("name of the type of zeek log"),
-            open: String::from("creation date"),
-            fields: Vec::new(),
-            types: Vec::new(),
+        LogHeader {
+            separator,
+            set_separator,
+            empty_field,
+            unset_field,
+            path,
+            open,
+            fields,
+            types,
         }
     }
 }
@@ -256,12 +328,29 @@ mod tests
     #[test]
     fn test_tsv_format()
     {
-        use crate::TsvFormat;
+        use crate::LogHeader;
         let log_path = std::path::Path::new("zeek-test-logs/2024-07-02/");
-        let s : TsvFormat = TsvFormat::new(&log_path); 
-        println!("{:?}", s);
+        let s : LogHeader = LogHeader::read_header(&log_path); 
+        println!("LogHeader: {:?}", s);
     }
-    
+
+    #[test]
+    fn test_read_header()
+    {
+        use crate::LogHeader;
+        // these values represent the input from the user.
+        let date_dir = "zeek-test-logs/2024-07-02";
+        let log_type = "conn";
+        let start_time = "00:00:00";
+        let end_time = "01:00:00";
+        let log_gz = "log.gz";
+        let header = format!("{}/{}.{}-{}.{}",date_dir, log_type, start_time, end_time, log_gz);
+        println!("read zeek log header {}", header);
+        let date_dir = std::path::Path::new(&header);
+        let dir = LogHeader::read_header(&date_dir);
+        println!("{dir:?}");
+    }
+
     #[test]
     fn test_lifetime()
     {
