@@ -64,21 +64,21 @@ impl ZeekData
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 struct LogHeader
 {
     separator: char,
     set_separator: String,
     empty_field: String,
     unset_field: String,
-    path: String,
+    path: String, // could turn this into a list to store multiple dates
     open: String,
     fields: Vec<String>,
     types: Vec<String>,
 }
 impl LogHeader
 {
-    fn read_header(p : &std::path::Path) -> Self 
+    fn set_header(p : &std::path::Path) -> Self 
     {
         let output = std::process::Command::new("zcat")
             .arg(&p)
@@ -152,6 +152,7 @@ impl LogHeader
                 eprintln!("{}",e.valid_up_to());
             }
         }
+
         LogHeader {
             separator,
             set_separator,
@@ -162,6 +163,38 @@ impl LogHeader
             fields,
             types,
         }
+    }
+    fn get_types(&self) -> &Vec<String>
+    {
+        &self.types
+    }
+    fn get_fields(&self) -> &Vec<String>
+    {
+        &self.fields
+    }
+}
+
+#[derive(Debug)]
+struct LogData<'a> 
+{
+    header: &'a LogHeader,
+    data: std::collections::HashMap<&'a str, Vec<&'a str>>,
+}
+impl<'a> LogData<'a>
+{
+    fn new(h: &'a LogHeader) -> Self
+    {
+        let fields = h.get_fields();
+        let mut f = std::collections::HashMap::<&'a str, Vec<&'a str>>::new();
+        for field in fields
+        {
+            f.insert(&field, Vec::<&'a str>::new());
+        }
+        LogData {header: h, data: f}
+    }
+    fn add_field_entry(&mut self, key: &'a str, val: &'a str)
+    {
+        self.data.entry(key).or_insert(Vec::new()).push(val);
     }
 }
 
@@ -200,27 +233,6 @@ async fn hello_handler(schema: web::Data<AppState>) -> impl Responder
     let mut visits = schema.visits.lock().unwrap();
     *visits += 1;
     format!("Hello, world! Visits: {}\n", visits)
-}
-
-fn get_zeek_header(path: &str) -> std::io::Result<()>
-{
-    let path : &std::path::Path = std::path::Path::new(path);
-    let contents = std::fs::read_dir(&path);
-    if contents.is_err() 
-    {
-        println!("ERROR(get_zeek_header): check file path");
-        std::process::exit(1); // temp
-    }
-    for content in contents?
-    {
-        let dir = content?;
-        let _file = dir.file_name();
-        let f = _file.to_str().expect("failed to convert to string").split(".").collect::<Vec<&str>>();
-        let f = f[0];
-        //println!("{}", f);
-    }
-
-    Ok(())
 }
 
 async fn graphql_handler(schema: web::Data<AppSchema>, req: GraphQLRequest) -> GraphQLResponse {
@@ -304,12 +316,6 @@ mod tests
     }
 
     #[test]
-    fn test_get_zeek_header()
-    {
-        let _ = super::get_zeek_header("zeek-test-logs/2024-07-02/");
-    }
-
-    #[test]
     fn test_hello() 
     {
         let res = std::process::Command::new("curl")
@@ -321,16 +327,7 @@ mod tests
         let output = std::str::from_utf8(&res.stdout).unwrap();
         println!("{}", output);
     }
-    
-    #[test]
-    fn test_tsv_format()
-    {
-        use crate::LogHeader;
-        let log_path = std::path::Path::new("zeek-test-logs/2024-07-02/");
-        let s : LogHeader = LogHeader::read_header(&log_path); 
-        println!("LogHeader: {:?}", s);
-    }
-
+ 
     #[test]
     fn test_read_header()
     {
@@ -343,16 +340,39 @@ mod tests
         let log_gz = "log.gz";
         let header = format!("{}/{}.{}-{}.{}",date_dir, log_type, start_time, end_time, log_gz);
         let date_dir = std::path::Path::new(&header);
-        let dir = LogHeader::read_header(&date_dir);
-        assert!(dir.separator.is_whitespace());
-        assert!(dir.set_separator.len() > 0);
-        assert!(dir.empty_field.len() > 0);
-        assert!(dir.unset_field.len() > 0);
-        assert!(dir.path.len() > 0);
-        assert!(dir.open.len() > 0);
-        assert!(dir.fields.len() > 0);
-        assert!(dir.types.len() > 0);
-        //println!("{dir:?}");
+        let header = LogHeader::set_header(&date_dir);
+        assert!(header.separator.is_whitespace());
+        assert!(header.set_separator.len() > 0);
+        assert!(header.empty_field.len() > 0);
+        assert!(header.unset_field.len() > 0);
+        assert!(header.path.len() > 0);
+        assert!(header.open.len() > 0);
+        assert!(header.fields.len() > 0);
+        assert!(header.types.len() > 0);
+        println!("{header:?}");
+    }
+    #[test]
+    fn test_log_data()
+    {
+        use crate::LogData;
+        use crate::LogHeader;
+        let date_dir = "zeek-test-logs/2024-07-02";
+        let log_type = "dns";
+        let start_time = "00:00:00";
+        let end_time = "01:00:00";
+        let log_gz = "log.gz";
+        let header = format!("{}/{}.{}-{}.{}",date_dir, log_type, start_time, end_time, log_gz);
+        let date_dir = std::path::Path::new(&header);
+        let h = LogHeader::set_header(&date_dir); 
+        let mut log : LogData = LogData::new(&h);
+        log.add_field_entry("test123","one");
+        log.add_field_entry("test123","two");
+        log.add_field_entry("test123","three");
+        log.add_field_entry("test1","one");
+        assert_eq!(log.data.get("test123").unwrap(), &vec!["one","two","three"]);
+        println!("passed: {:?}",log.data.get("test123").unwrap());
+        assert_eq!(log.data.get("test1").unwrap(), &vec!["one"]);
+        println!("passed: {:?}",log.data.get("test1").unwrap());
     }
 
     #[test]
@@ -366,16 +386,6 @@ mod tests
         print_val(&x);
     }
 }
-
-
-
-
-
-
-
-
-
-
 
 
 
