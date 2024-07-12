@@ -141,8 +141,6 @@ impl LogHeader
                             }
                             _ => {break;}
                         }
-                        let n = buffer.split(separator).collect::<Vec<&str>>();
-                        println!("n: {n:?}");
                         buffer.clear();
                         pos += 1; 
                         continue; // ignore the newline char.
