@@ -12,73 +12,22 @@ use std::io::Write;
 use std::sync::Mutex;
 use openssl::ssl::{SslAcceptor, SslFiletype, SslMethod};
 
-struct AppState 
-{
-    visits: Mutex<i32>,
-}
-
-struct LogInfo
-{
-    types: Mutex<std::collections::HashSet<String>>
-}
-
-struct Query;
-#[Object]
-impl Query 
-{
-    async fn zeeklogs(&self, _ctx: &Context<'_>) -> Result<String> 
-    {
-        println!("ctx: {:?}", _ctx.data::<String>());
-        let path = "zeek-test-logs/2024-07-03/ssh.02:00:00-03:00:00.log.gz";
-        let output = std::process::Command::new("zcat")
-            .arg(path)
-            .output()
-            .expect("failed to execute process");
-        let output = std::str::from_utf8(&output.stdout).unwrap();
-        Ok(output.to_string())
-    }
-    async fn zeekdata(&self, _ctx: &Context<'_>) -> Result<ZeekData> 
-    {
-        Ok(ZeekData { name: "dns".to_string(), src_ip: "127.0.0.1".to_string() })
-    }
-}
-
-#[derive(SimpleObject)]
-#[graphql(complex)]
-struct ZeekData 
-{
-    name: String,
-    src_ip: String,
-}
-
-#[ComplexObject]
-impl ZeekData 
-{
-    async fn source_ip(&self) -> String 
-    {
-        self.src_ip.clone()
-    }
-    async fn log_name(&self) -> String 
-    {
-        self.name.clone()
-    }
-}
 
 #[derive(Debug,Clone)]
-struct LogHeader
+pub struct LogHeader
 {
-    separator: char,
-    set_separator: String,
-    empty_field: String,
-    unset_field: String,
-    path: String, // could turn this into a list to store multiple dates
-    open: String,
-    fields: Vec<String>,
-    types: Vec<String>,
+    pub separator: char,
+    pub set_separator: String,
+    pub empty_field: String,
+    pub unset_field: String,
+    pub path: String, // could turn this into a list to store multiple dates
+    pub open: String,
+    pub fields: Vec<String>,
+    pub types: Vec<String>,
 }
 impl LogHeader
 {
-    fn set_header(p : &std::path::Path) -> Self 
+    pub fn set_header(p : &std::path::Path) -> Self 
     {
         let output = std::process::Command::new("zcat")
             .arg(&p)
@@ -164,25 +113,25 @@ impl LogHeader
             types,
         }
     }
-    fn get_types(&self) -> &Vec<String>
+    pub fn get_types(&self) -> &Vec<String>
     {
         &self.types
     }
-    fn get_fields(&self) -> &Vec<String>
+    pub fn get_fields(&self) -> &Vec<String>
     {
         &self.fields
     }
 }
 
 #[derive(Debug)]
-struct LogData<'a> 
+pub struct LogData<'a> 
 {
-    header: &'a LogHeader,
-    data: std::collections::HashMap<&'a str, Vec<&'a str>>,
+    pub header: &'a LogHeader,
+    pub data: std::collections::HashMap<&'a str, Vec<&'a str>>,
 }
 impl<'a> LogData<'a>
 {
-    fn new(h: &'a LogHeader) -> Self
+    pub fn new(h: &'a LogHeader) -> Self
     {
         let fields = h.get_fields();
         let mut f = std::collections::HashMap::<&'a str, Vec<&'a str>>::new();
@@ -192,51 +141,10 @@ impl<'a> LogData<'a>
         }
         LogData {header: h, data: f}
     }
-    fn add_field_entry(&mut self, key: &'a str, val: &'a str)
+    pub fn add_field_entry(&mut self, key: &'a str, val: &'a str)
     {
         self.data.entry(key).or_insert(Vec::new()).push(val);
     }
-}
-
-type AppSchema = Schema<Query, EmptyMutation, EmptySubscription>;
-
-#[actix_web::main]
-async fn main() -> std::io::Result<()> 
-{
-    let mut ssl_builder = SslAcceptor::mozilla_intermediate(SslMethod::tls()).unwrap();
-    ssl_builder.set_private_key_file("key.pem", SslFiletype::PEM).unwrap();
-    ssl_builder.set_certificate_chain_file("cert.pem").unwrap();
-
-    let visits = web::Data::new(AppState { visits: 1000.into() });
-    let log_info = web::Data::new(LogInfo { types: std::collections::HashSet::new().into() });
-
-    let schema = Schema::build(Query, EmptyMutation, EmptySubscription)
-        .data("data_hello".to_string())
-        .finish();
-
-    HttpServer::new(move || {
-        App::new()
-            .app_data(web::Data::new(schema.clone()))
-            .app_data(visits.clone())
-            .app_data(log_info.clone())
-            .service(web::resource("/hello").route(web::get().to(hello_handler)))
-            .service(web::resource("/graphql").route(web::post().to(graphql_handler)))
-    })
-    .bind_openssl("0.0.0.0:8080", ssl_builder)?
-    .run()
-    .await
-}
-
-async fn hello_handler(schema: web::Data<AppState>) -> impl Responder 
-{
-    println!("ctx: {:?}", schema.visits);
-    let mut visits = schema.visits.lock().unwrap();
-    *visits += 1;
-    format!("Hello, world! Visits: {}\n", visits)
-}
-
-async fn graphql_handler(schema: web::Data<AppSchema>, req: GraphQLRequest) -> GraphQLResponse {
-    schema.execute(req.into_inner()).await.into()
 }
 
 fn increment<'a>(val: &'a mut u32)
@@ -251,83 +159,6 @@ fn print_val<'a>(val: &'a u32)
 
 mod tests 
 {
-    #[test]
-    fn test_graphql() 
-    {
-        let res = std::process::Command::new("curl")
-            .arg("--cacert")
-            .arg("cert.pem")
-            .arg("-X")
-            .arg("POST")
-            .arg("https://localhost:8080/graphql")
-            .arg("-H")
-            .arg("Content-Type: application/json")
-            .arg("-d")
-            .arg(r#"{"query":"{ zeekdata { logName sourceIp } }"}"#)
-            .output()
-            .expect("failed to execute process");
-        let output = std::str::from_utf8(&res.stdout).unwrap();
-        println!("{}", output);
-
-        let res = std::process::Command::new("curl")
-            .arg("--cacert")
-            .arg("cert.pem")
-            .arg("-X")
-            .arg("POST")
-            .arg("https://localhost:8080/graphql")
-            .arg("-H")
-            .arg("Content-Type: application/json")
-            .arg("-d")
-            .arg(r#"{"query":"{ zeekdata { logName } }"}"#)
-            .output()
-            .expect("failed to execute process");
-        let output = std::str::from_utf8(&res.stdout).unwrap();
-        println!("{}", output);
- 
-        let res = std::process::Command::new("curl")
-            .arg("--cacert")
-            .arg("cert.pem")
-            .arg("-X")
-            .arg("POST")
-            .arg("https://localhost:8080/graphql")
-            .arg("-H")
-            .arg("Content-Type: application/json")
-            .arg("-d")
-            .arg(r#"{"query":"{ zeekdata { sourceIp } }"}"#)
-            .output()
-            .expect("failed to execute process");
-        let output = std::str::from_utf8(&res.stdout).unwrap();
-        println!("{}", output);
- 
-        let res = std::process::Command::new("curl")
-            .arg("--cacert")
-            .arg("cert.pem")
-            .arg("-X")
-            .arg("POST")
-            .arg("https://localhost:8080/graphql")
-            .arg("-H")
-            .arg("Content-Type: application/json")
-            .arg("-d")
-            .arg(r#"{"query":"{ zeekdata }"}"#)
-            .output()
-            .expect("failed to execute process");
-        let output = std::str::from_utf8(&res.stdout).unwrap();
-        println!("{}", output);
-    }
-
-    #[test]
-    fn test_hello() 
-    {
-        let res = std::process::Command::new("curl")
-            .arg("--cacert")
-            .arg("cert.pem")
-            .arg("https://localhost:8080/hello")
-            .output()
-            .expect("failed to execute process");
-        let output = std::str::from_utf8(&res.stdout).unwrap();
-        println!("{}", output);
-    }
- 
     #[test]
     fn test_read_header()
     {

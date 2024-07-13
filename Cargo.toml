@@ -1,5 +1,8 @@
 [package]
-name = "app"
+authors = ["ende <endepointe@gmail.com>"]
+categories = ["network-programming", "log-analysis"]
+description = "A zeek log analysis library implemented in Rust"
+name = "log-analyzer"
 version = "0.1.0"
 edition = "2021"
 
@@ -10,13 +13,4 @@ async-graphql-actix-web = "7.0.6"
 flate2 = "1.0.30"
 openssl = {version = "0.10.64"}
 serde_json = "1.0.120"
-
-[[bin]]
-name = "server"
-path = "src/server.rs"
-
-[[bin]]
-name = "client"
-path = "src/client.rs"
-
 
