@@ -137,6 +137,12 @@ impl<'a> LogData<'a>
     }
 }
 
+pub struct
+LogDirectory
+{
+    heirarchy: std::collections::btree_map::BTreeMap<String,String> // <String,String> for now.
+}
+
 
 
 #[derive(Debug)]
