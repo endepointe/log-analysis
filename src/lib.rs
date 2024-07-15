@@ -1,6 +1,106 @@
 // now learn how this all works
 use std::fs::{self, File};
 use std::io::{self, Read};
+use std::path::Path;
+use std::collections::HashMap;
+use std::collections::btree_map::BTreeMap;
+
+#[derive(Debug,Copy,Clone)]
+pub enum 
+LogType
+{
+    CONN,
+    DNS,
+    HTTP,
+    FILES,
+    FTP,
+    SSL,
+    X509,
+    SMTP,
+    SSH,
+    PE,
+    DHCP,
+    NTP,
+    SMB,
+    IRC,
+    RDP,
+    LDAP,
+    QUIC,
+    TRACEROUTE,
+    TUNNEL,
+    DPD,
+    KNOWN,
+    SOFTWARE,
+    WEIRD,
+    NOTICE,
+    CAPTURE_LOSS,
+    REPORTER,
+    SIP,
+}
+impl std::str::FromStr for LogType
+{
+    type Err = String;
+    fn from_str(name: &str) -> Result<LogType, Self::Err>
+    {
+        match name
+        {
+            "conn" => Ok(LogType::CONN),
+            "dns" => Ok(LogType::DNS),
+            "http" => Ok(LogType::HTTP),
+            "files" => Ok(LogType::FILES),
+            "ftp" => Ok(LogType::FTP),
+            "ssl" => Ok(LogType::SSL),
+            "x509" => Ok(LogType::X509),
+            "smtp" => Ok(LogType::SMTP),
+            "ssh" => Ok(LogType::SSH),
+            "pe" => Ok(LogType::PE),
+            "dhcp" => Ok(LogType::DHCP),
+            "ntp" => Ok(LogType::NTP),
+            "smb" => Ok(LogType::SMB),
+            "irc" => Ok(LogType::IRC),
+            "rdp" => Ok(LogType::RDP),
+            "ldap" => Ok(LogType::LDAP),
+            "quic" => Ok(LogType::QUIC),
+            "traceroute" => Ok(LogType::TRACEROUTE),
+            "tunnel" => Ok(LogType::TUNNEL),
+            "dpd" => Ok(LogType::DPD),
+            "known" => Ok(LogType::KNOWN),
+            "software" => Ok(LogType::SOFTWARE),
+            "weird" => Ok(LogType::WEIRD),
+            "notice" => Ok(LogType::NOTICE),
+            "capture_loss" => Ok(LogType::CAPTURE_LOSS),
+            "reporter" => Ok(LogType::REPORTER),
+            "sip" => Ok(LogType::SIP),
+            _ => Err("LogType not found".to_string()),
+        }
+    }
+}
+
+macro_rules! read_struct {
+    ($struct:expr, $(*:ident),*) => {
+        $(println!("{}: {:?}", stringify!($field), $struct.$field);)*
+    };
+}
+
+#[derive(Debug, Copy, Clone)]
+pub struct
+SearchParams<'a>
+{
+    pub log_type: Option<LogType>,
+    pub ip: Option<&'a str>,
+    pub time_range: Option<&'a str>, // todo
+}
+impl<'a> SearchParams<'a>
+{
+    pub fn new() -> Self
+    {
+        SearchParams {
+            log_type: None,
+            ip: None,
+            time_range: None,
+        }
+    }
+}
 
 #[derive(Debug,Clone)]
 pub struct LogHeader
@@ -11,12 +111,14 @@ pub struct LogHeader
     pub unset_field: String,
     pub path: String, // could turn this into a list to store multiple dates
     pub open: String,
+    // field and types may be better used as a tuple.
+    // todo: (field_type_tuple)
     pub fields: Vec<String>,
     pub types: Vec<String>,
 }
 impl LogHeader
 {
-    pub fn set_header(p : &std::path::Path) -> Self  // this should be a static method
+    pub fn new(p : &std::path::Path) -> Self
     {
         let output = std::process::Command::new("zcat")
             .arg(&p)
@@ -31,7 +133,7 @@ impl LogHeader
         let mut unset_field = String::new();
         let mut path = String::new();
         let mut open = String::new();
-        let mut fields = Vec::<String>::new();
+        let mut fields = Vec::<String>::new(); //todo: (field_type_tuple)
         let mut types = Vec::<String>::new();
 
         match std::str::from_utf8(&log_header) 
@@ -43,7 +145,9 @@ impl LogHeader
                         match pos 
                         {
                             0 => {
-                                let result = buffer.split(' ').collect::<Vec<&str>>()[1].strip_prefix("\\x");
+                                let result = buffer.split(' ')
+                                                .collect::<Vec<&str>>()[1]
+                                                .strip_prefix("\\x");
                                 let result = u8::from_str_radix(result.unwrap(), 16)
                                     .expect("LOG_SEPARATER_CHAR: ");
                                 separator = char::from(result);
@@ -113,65 +217,78 @@ impl LogHeader
 }
 
 #[derive(Debug)]
-pub struct 
+struct 
 LogData<'a> 
 {
-    pub header: &'a LogHeader,
-    pub data: std::collections::HashMap<&'a str, Vec<&'a str>>,
+    header: &'a LogHeader,
+    data: HashMap<&'a str, Vec<&'a str>>,
 }
 impl<'a> LogData<'a>
 {
-    pub fn new(h: &'a LogHeader) -> Self
+    fn new(h: &'a LogHeader) -> Self
     {
         let fields = h.get_fields();
-        let mut f = std::collections::HashMap::<&'a str, Vec<&'a str>>::new();
+        let mut f = HashMap::<&'a str, Vec<&'a str>>::new();
         for field in fields
         {
             f.insert(&field, Vec::<&'a str>::new());
         }
         LogData {header: h, data: f}
     }
-    pub fn add_field_entry(&mut self, key: &'a str, val: &'a str)
+    fn add_field_entry(&mut self, key: &'a str, val: &'a str)
     {
         self.data.entry(key).or_insert(Vec::new()).push(val);
     }
 }
 
-pub struct
-LogDirectory
-{
-    heirarchy: std::collections::btree_map::BTreeMap<String,String> // <String,String> for now.
-}
-
-
-
 #[derive(Debug)]
 pub struct
-Search<'a>
+LogDirectory<'a>
 {
-    pub ip: Option<&'a str>,
-    pub time_range: Option<&'a str>, // todo
+    day: &'a str,
+    pub files: BTreeMap<String, LogData<'a>>,
 }
-impl<'a> Search<'a>
+impl<'a> LogDirectory<'a>
 {
-    pub fn new() -> Self
+    pub fn new(p: &'a Path) -> Result<Self, &str>
     {
-        Search {ip: None, time_range: None}
-    }
-    // This method requires that the zeek log parent path is known.
-    pub fn ip_addr(&'a self, ip: &'a str) -> std::io::Result<&str> //Result<&str, &str>
-    {
-        let existing_log_dir = std::path::Path::new("zeek-test-logs/2024-07-02");
-        assert_eq!(existing_log_dir.is_dir(), true);
-        for d in fs::read_dir(&existing_log_dir)?
+        // The default path of zeek logs on debian is /opt/zeek/logs.
+        // The user is responsible for specifying a valid ancestor directory path to 
+        // reach the path/to/your/logs/YYYY-MM-DD directories.
+        match p.is_dir()
         {
-            println!("{:?}", d?.path());
+            true => {
+                let dir = p.to_str().unwrap();
+                Ok(LogDirectory {
+                    day: dir,
+                    files: BTreeMap::new(),
+                })
+            }
+            false => {
+                Err("handle LogDirectory::new() error")
+            }
         }
-        Ok(ip)
     }
-    pub fn test(&self, ip: std::net::IpAddr)
+    pub fn find(&mut self, params: SearchParams) -> std::io::Result<()> 
     {
-        println!("test: {ip:?}");
+        println!("{}:{} - Search Parameters: {:?}", file!(), line!(), params);
+        for child in std::fs::read_dir(self.day)?
+        {
+            let child = child?;
+            match child.file_name().into_string()
+            {
+                Ok(log) => {
+                    let v = log.split('.').collect::<Vec<_>>();
+                    println!("{}:{} -- {:?}",file!(),lne!(), v[0]); // at this point, read the 
+                                                                     // create header, fill in data
+                                                                     // and keep growing this. 
+                                                                     // inserting typo so i know 
+                                                                     // where to resume.
+                }
+                Err(e) => {continue;}
+            }
+        }
+        Ok(())
     }
 }
 
