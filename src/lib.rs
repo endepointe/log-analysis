@@ -76,11 +76,6 @@ impl std::str::FromStr for LogType
     }
 }
 
-macro_rules! read_struct {
-    ($struct:expr, $(*:ident),*) => {
-        $(println!("{}: {:?}", stringify!($field), $struct.$field);)*
-    };
-}
 
 #[derive(Debug, Copy, Clone)]
 pub struct
