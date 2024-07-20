@@ -1,4 +1,5 @@
 // now learn how this all works
+use std::str::FromStr;
 use std::fs::{self, File};
 use std::io::{self, Read};
 use std::path::Path;
@@ -250,6 +251,27 @@ impl<'a> LogDirectory<'a>
         // The default path of zeek logs on debian is /opt/zeek/logs.
         // The user is responsible for specifying a valid ancestor directory path to 
         // reach the path/to/your/logs/YYYY-MM-DD directories.
+        let val = &p.to_str();
+
+        if let Some(v) = val 
+        {
+            let v : Vec<_> = v.split('/').collect();
+            let v : Vec<_> = v[v.len()-1].split('-').collect();
+            if v.len() != 3 
+            {
+                return Err("invalid directory structure and/or value")
+            }
+            for i in 0..v.len() 
+            {
+                let number = u16::from_str(v[i]);
+                if let Err(e) = number {
+                    return Err("invalid date format, expected: yyyy-mm-dd")
+                }
+            }
+        } else {
+            return Err("invalid date format, expected: yyyy-mm-dd");
+        }
+
         match p.is_dir()
         {
             true => {
@@ -260,10 +282,13 @@ impl<'a> LogDirectory<'a>
                 })
             }
             false => {
-                Err("handle LogDirectory::new() error")
+                let msg = format!("{}:{} ",file!(),line!());
+                print!("{}",msg);
+                Err("invalid directory structure and/or value")
             }
         }
     }
+
     pub fn find(&mut self, params: SearchParams) -> std::io::Result<()> 
     {
         println!("{}:{} - Search Parameters: {:?}", file!(), line!(), params);
@@ -274,11 +299,9 @@ impl<'a> LogDirectory<'a>
             {
                 Ok(log) => {
                     let v = log.split('.').collect::<Vec<_>>();
-                    println!("{}:{} -- {:?}",file!(),lne!(), v[0]); // at this point, read the 
-                                                                     // create header, fill in data
-                                                                     // and keep growing this. 
-                                                                     // inserting typo so i know 
-                                                                     // where to resume.
+                    println!("{}:{} -- {:?}",file!(),line!(), v[0]); 
+                    // at this point, read the create header, fill in data
+                    // and keep growing this. 
                 }
                 Err(e) => {continue;}
             }
