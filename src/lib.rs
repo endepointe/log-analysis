@@ -246,11 +246,13 @@ LogDirectory<'a>
 }
 impl<'a> LogDirectory<'a>
 {
-    pub fn new(p: &'a Path) -> Result<Self, &str>
+    fn check_date_format(p: &'a Path) -> bool
     {
         // The default path of zeek logs on debian is /opt/zeek/logs.
         // The user is responsible for specifying a valid ancestor directory path to 
         // reach the path/to/your/logs/YYYY-MM-DD directories.
+        // The log directory the user should expect is the format yyyy-mm-dd.
+
         let val = &p.to_str();
 
         if let Some(v) = val 
@@ -259,30 +261,37 @@ impl<'a> LogDirectory<'a>
             let v : Vec<_> = v[v.len()-1].split('-').collect();
             if v.len() != 3 
             {
-                return Err("invalid directory structure and/or value")
+                return false
             }
             for i in 0..v.len() 
             {
                 let number = u16::from_str(v[i]);
-                if let Err(e) = number {
-                    return Err("invalid date format, expected: yyyy-mm-dd")
+                if let Err(e) = number 
+                {
+                    return false
                 }
             }
-        } else {
-            return Err("invalid date format, expected: yyyy-mm-dd");
-        }
+            return true 
+        } 
 
-        match p.is_dir()
+        false
+    }
+
+    pub fn new(p: &'a Path) -> Result<Self, &str>
+    {
+        match p.is_dir() && Self::check_date_format(p)        
         {
             true => {
                 let dir = p.to_str().unwrap();
+                let dir : Vec<_> = dir.split('/').collect();
+                let dir = dir[dir.len() - 1];
                 Ok(LogDirectory {
                     day: dir,
                     files: BTreeMap::new(),
                 })
             }
             false => {
-                let msg = format!("{}:{} ",file!(),line!());
+                let msg = format!("{}:{} ", file!(), line!());
                 print!("{}",msg);
                 Err("invalid directory structure and/or value")
             }
@@ -291,7 +300,8 @@ impl<'a> LogDirectory<'a>
 
     pub fn find(&mut self, params: SearchParams) -> std::io::Result<()> 
     {
-        println!("{}:{} - Search Parameters: {:?}", file!(), line!(), params);
+        println!("{}:{} - Search Parameters: {:?}, day: {}", 
+                 file!(), line!(), params, self.day);
         for child in std::fs::read_dir(self.day)?
         {
             let child = child?;
@@ -299,9 +309,8 @@ impl<'a> LogDirectory<'a>
             {
                 Ok(log) => {
                     let v = log.split('.').collect::<Vec<_>>();
-                    println!("{}:{} -- {:?}",file!(),line!(), v[0]); 
-                    // at this point, read the create header, fill in data
-                    // and keep growing this. 
+                    //println!("{}:{} -- {:?}",file!(),line!(), v[0]); 
+                    // using the log directory fields, search for the params.
                 }
                 Err(e) => {continue;}
             }
