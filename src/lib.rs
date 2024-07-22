@@ -307,7 +307,13 @@ impl<'a> LogDirectory<'a>
             Some(path) => {
                 println!("\n{}:{} Search: {:?} for Params: {:?}",
                          file!(),line!(), self.full_path, params); 
-                 
+                match params.log_type 
+                {
+                    Some(t) => {
+                        println!("{} {t:?}", line!());
+                    }
+                    None => {}
+                }
                 // The user may want to narrow down their search results by
                 // protocol (e.g. ssh, http, etc). Keep it flexible here.
                 //for child in std::fs::read_dir(path)?
@@ -329,7 +335,6 @@ impl<'a> LogDirectory<'a>
                 println!("{}:{} -- {:?}",file!(),line!(), self.full_path); 
             }
         }
-
 
         Ok(())
     }
