@@ -6,7 +6,7 @@ use std::path::Path;
 use std::collections::HashMap;
 use std::collections::btree_map::BTreeMap;
 
-#[derive(Debug,Copy,Clone)]
+#[derive(Debug)]
 pub enum 
 LogType
 {
@@ -78,7 +78,7 @@ impl std::str::FromStr for LogType
 }
 
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug)]
 pub struct
 SearchParams<'a>
 {
@@ -242,6 +242,7 @@ pub struct
 LogDirectory<'a>
 {
     day: &'a str,
+    full_path: Option<&'a str>,
     pub files: BTreeMap<String, LogData<'a>>,
 }
 impl<'a> LogDirectory<'a>
@@ -285,14 +286,15 @@ impl<'a> LogDirectory<'a>
                 let dir = p.to_str().unwrap();
                 let dir : Vec<_> = dir.split('/').collect();
                 let dir = dir[dir.len() - 1];
+                let full_path = p.to_str();
                 Ok(LogDirectory {
                     day: dir,
+                    full_path: full_path,
                     files: BTreeMap::new(),
                 })
             }
             false => {
                 let msg = format!("{}:{} ", file!(), line!());
-                print!("{}",msg);
                 Err("invalid directory structure and/or value")
             }
         }
@@ -300,21 +302,35 @@ impl<'a> LogDirectory<'a>
 
     pub fn find(&mut self, params: SearchParams) -> std::io::Result<()> 
     {
-        println!("{}:{} - Search Parameters: {:?}, day: {}", 
-                 file!(), line!(), params, self.day);
-        for child in std::fs::read_dir(self.day)?
+        match self.full_path 
         {
-            let child = child?;
-            match child.file_name().into_string()
-            {
-                Ok(log) => {
-                    let v = log.split('.').collect::<Vec<_>>();
-                    //println!("{}:{} -- {:?}",file!(),line!(), v[0]); 
-                    // using the log directory fields, search for the params.
-                }
-                Err(e) => {continue;}
+            Some(path) => {
+                println!("\n{}:{} Search: {:?} for Params: {:?}",
+                         file!(),line!(), self.full_path, params); 
+                 
+                // The user may want to narrow down their search results by
+                // protocol (e.g. ssh, http, etc). Keep it flexible here.
+                //for child in std::fs::read_dir(path)?
+                //{
+                //    let child = child?;
+                //    match child.file_name().into_string()
+                //    {
+                //        Ok(log) => {
+                //            let v = log.split('.').collect::<Vec<_>>();
+                //            println!("{}:{} -- {:?}",file!(),line!(), v[0]); 
+                //            // using the log directory fields, search for the params.
+                //        }
+                //        Err(e) => {continue;}
+                //    }
+                //}
+            }
+            None => {
+                // write a test for this arm.
+                println!("{}:{} -- {:?}",file!(),line!(), self.full_path); 
             }
         }
+
+
         Ok(())
     }
 }
