@@ -6,6 +6,17 @@ use std::path::Path;
 use std::collections::HashMap;
 use std::collections::btree_map::BTreeMap;
 
+// default log path: /usr/local/zeek or /opt/zeek or custom/path/
+// https://docs.zeek.org/en/master/quickstart.html#filesystem-walkthrough
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum
+PathError
+{
+    NotFound,
+    PrefixUnspecified,
+}
+
 #[derive(Debug)]
 pub enum 
 LogType
@@ -98,8 +109,9 @@ impl<'a> SearchParams<'a>
     }
 }
 
-#[derive(Debug,Clone)]
-pub struct LogHeader
+#[derive(Debug,Clone,PartialEq,Eq)]
+pub struct 
+LogHeader
 {
     pub separator: char,
     pub set_separator: String,
@@ -212,7 +224,7 @@ impl LogHeader
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 struct 
 LogData<'a> 
 {
@@ -237,12 +249,12 @@ impl<'a> LogData<'a>
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct
 LogDirectory<'a>
 {
     day: &'a str,
-    full_path: Option<&'a str>,
+    path_prefix: Option<&'a str>,
     pub files: BTreeMap<String, LogData<'a>>,
 }
 impl<'a> LogDirectory<'a>
@@ -250,12 +262,11 @@ impl<'a> LogDirectory<'a>
     fn check_date_format(p: &'a Path) -> bool
     {
         // The default path of zeek logs on debian is /opt/zeek/logs.
-        // The user is responsible for specifying a valid ancestor directory path to 
-        // reach the path/to/your/logs/YYYY-MM-DD directories.
+        // The user is responsible for specifying a valid directory path to 
+        // reach the path/to/zeek/logs/YYYY-MM-DD directories.
         // The log directory the user should expect is the format yyyy-mm-dd.
 
         let val = &p.to_str();
-
         if let Some(v) = val 
         {
             let v : Vec<_> = v.split('/').collect();
@@ -278,35 +289,60 @@ impl<'a> LogDirectory<'a>
         false
     }
 
-    pub fn new(p: &'a Path) -> Result<Self, &str>
+    // Initializes structure to search through logs using the path_prefix/ as the
+    // parent log directory.
+    pub fn new(p: Option<&'a Path>) -> Result<Self, PathError>
     {
-        match p.is_dir() && Self::check_date_format(p)        
+        match p 
         {
-            true => {
-                let dir = p.to_str().unwrap();
-                let dir : Vec<_> = dir.split('/').collect();
-                let dir = dir[dir.len() - 1];
-                let full_path = p.to_str();
-                Ok(LogDirectory {
-                    day: dir,
-                    full_path: full_path,
-                    files: BTreeMap::new(),
-                })
+            None => {
+                // check whether the default paths exist
+                let opt_zeek = std::path::Path::new("/opt/zeek/");
+                let usr_local_zeek = std::path::Path::new("/usr/local/zeek/");
+                if opt_zeek.is_dir() 
+                {
+                    return Ok(LogDirectory {
+                        day: "may not need this field",
+                        path_prefix: opt_zeek.to_str(),
+                        files: BTreeMap::new(),
+                    })
+                } 
+                if usr_local_zeek.is_dir() 
+                {
+                    return Ok(LogDirectory {
+                        day: "may not need this field",
+                        path_prefix: usr_local_zeek.to_str(),
+                        files: BTreeMap::new(),
+                    })
+                } 
+                return Err(PathError::PrefixUnspecified)
             }
-            false => {
-                let msg = format!("{}:{} ", file!(), line!());
-                Err("invalid directory structure and/or value")
+            Some(path) => {
+                // check if the user oversupplied a path, (e.g: /path_prefix/yyyy-mm-dd) 
+                // where yyyy-mm-dd should not have been supplied.
+                let check = Self::check_date_format(path);
+                dbg!(check,path);
+                println!("");
+                let parent_log_dir = std::path::Path::new(path);
+                if parent_log_dir.is_dir() 
+                {
+                    return Ok(LogDirectory {
+                        day: "may not need this field",
+                        path_prefix: path.to_str(),
+                        files: BTreeMap::new(),
+                    })
+                }
+                return Err(PathError::NotFound)
             }
         }
     }
 
-    pub fn find(&mut self, params: SearchParams) -> std::io::Result<()> 
+    pub fn find_by_day(&mut self, params: SearchParams) -> std::io::Result<()> 
     {
-        match self.full_path 
+        match self.path_prefix 
         {
             Some(path) => {
-                println!("\n{}:{} Search: {:?} for Params: {:?}",
-                         file!(),line!(), self.full_path, params); 
+
                 match params.log_type 
                 {
                     Some(t) => {
@@ -331,8 +367,8 @@ impl<'a> LogDirectory<'a>
                 //}
             }
             None => {
-                // write a test for this arm.
-                println!("{}:{} -- {:?}",file!(),line!(), self.full_path); 
+                println!("{}:{} -- {:?}",file!(),line!(), self.path_prefix); 
+                todo!();
             }
         }
 
