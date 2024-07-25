@@ -1,4 +1,4 @@
-use log_analyzer;
+use log_analysis;
 
 #[test]
 fn test_new()
@@ -47,8 +47,8 @@ fn test_add_field_entry()
 #[test]
 fn test_lifetime()
 {
-    use log_analyzer::increment;
-    use log_analyzer::print_val;
+    use log_analysis::increment;
+    use log_analysis::print_val;
     let mut x = 10; 
     print_val(&x);
     increment(&mut x);

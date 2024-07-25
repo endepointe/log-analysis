@@ -1,4 +1,4 @@
-use log_analyzer::ip2location;
+use log_analysis::ip2location;
 
 #[test]
 fn test_ip2location()

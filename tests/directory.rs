@@ -1,5 +1,5 @@
-use log_analyzer::{LogType, LogHeader, LogDirectory, SearchParams};
-use log_analyzer::PathError;
+use log_analysis::{LogType, LogHeader, LogDirectory, SearchParams};
+use log_analysis::PathError;
 use std::path::Path;
 
 #[test]
