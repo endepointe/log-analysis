@@ -1,8 +1,7 @@
-use log_analysis::ip2location;
-
 #[test]
+#[cfg(feature = "ip2location")]
 fn test_ip2location()
 {
-    ip2location::location();
+    use log_analysis::ip2location;
+    ip2location();
 }
-

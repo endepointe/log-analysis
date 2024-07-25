@@ -1,10 +1,11 @@
-// now learn how this all works
+
 use std::str::FromStr;
 use std::fs::{self, File};
 use std::io::{self, Read};
 use std::path::Path;
 use std::collections::HashMap;
 use std::collections::btree_map::BTreeMap;
+
 
 // default log path: /usr/local/zeek or /opt/zeek or custom/path/
 // https://docs.zeek.org/en/master/quickstart.html#filesystem-walkthrough
@@ -375,10 +376,7 @@ print_val<'a>(val: &'a u32)
 
 
 #[cfg(feature = "ip2location")]
-pub mod ip2location
+pub fn ip2location() 
 {
-    pub fn location() 
-    {
-        dbg!("ip2location::location()");
-    }
+    dbg!("ip2location::location()");
 }

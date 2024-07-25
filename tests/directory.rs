@@ -36,25 +36,11 @@ fn test_create_log_directory()
 
 
 #[test]
-fn test_find_by_params()
+fn test_find()
 {
-    use std::io::Write;
-    let mut input = String::new();
-    print!("Enter the log path: ");
-    std::io::stdout().flush().expect("stdout flush error");
-    std::io::stdin().read_line(&mut input).expect("invalid input");
-
-    println!("Checking log path: {}", input);
-    let mut s = LogDirectory::new(Some(Path::new(input.trim())));
+    let mut s = LogDirectory::new(Some(Path::new("zeek-test-logs")));
     let mut params = SearchParams::new();
     params.log_type = Some(LogType::CONN);
-    params.ip = Some("81.81.2.2");
-    println!("{:?}:{}", params, line!());
-    //let result = s.find(params).unwrap();
-    //println!("{:?} {}",result, line!());
-    //let mut params = SearchParams::new();
-    //params.log_type = Some(LogType::DNS);
-    //println!("{:?}:{}", params, line!());
 }
 
 #[test]

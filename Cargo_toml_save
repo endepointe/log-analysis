@@ -6,9 +6,13 @@ name = "log-analysis"
 version = "0.1.0"
 edition = "2021"
 
-[features]
-default = ["ip2location"]
-
-ip2location = []
-
 [dependencies]
+actix-web = { version = "4.8.0", features = ["openssl"] }
+async-graphql = "7.0.6"
+async-graphql-actix-web = "7.0.6"
+flate2 = "1.0.30"
+openssl = {version = "0.10.64"}
+serde_json = "1.0.120"
+
+[features]
+ip2location = []
