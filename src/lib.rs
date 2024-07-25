@@ -350,21 +350,6 @@ impl<'a> LogDirectory<'a>
                     }
                     None => {}
                 }
-                // The user may want to narrow down their search results by
-                // protocol (e.g. ssh, http, etc). Keep it flexible here.
-                //for child in std::fs::read_dir(path)?
-                //{
-                //    let child = child?;
-                //    match child.file_name().into_string()
-                //    {
-                //        Ok(log) => {
-                //            let v = log.split('.').collect::<Vec<_>>();
-                //            println!("{}:{} -- {:?}",file!(),line!(), v[0]); 
-                //            // using the log directory fields, search for the params.
-                //        }
-                //        Err(e) => {continue;}
-                //    }
-                //}
             }
             None => {
                 println!("{}:{} -- {:?}",file!(),line!(), self.path_prefix); 
@@ -388,3 +373,12 @@ print_val<'a>(val: &'a u32)
     println!("print_val : val is {}",val);
 }
 
+
+#[cfg(feature = "ip2location")]
+pub mod ip2location
+{
+    pub fn location() 
+    {
+        dbg!("ip2location::location()");
+    }
+}
