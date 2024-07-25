@@ -44,17 +44,6 @@ fn test_add_field_entry()
     //println!("passed: {:?}",log.data.get("test1").unwrap());
 }
 
-#[test]
-fn test_lifetime()
-{
-    use log_analysis::increment;
-    use log_analysis::print_val;
-    let mut x = 10; 
-    print_val(&x);
-    increment(&mut x);
-    print_val(&x);
-}
-
 
 
 

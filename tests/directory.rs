@@ -41,6 +41,7 @@ fn test_find()
     let mut s = LogDirectory::new(Some(Path::new("zeek-test-logs")));
     let mut params = SearchParams::new();
     params.log_type = Some(LogType::CONN);
+    dbg!(s);
 }
 
 #[test]
