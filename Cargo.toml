@@ -3,7 +3,7 @@ authors = ["ende <endepointe@gmail.com>"]
 categories = ["filesystem"]
 description = "A zeek log analysis library implemented in Rust"
 name = "log-analysis"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 license = "MIT"
 
