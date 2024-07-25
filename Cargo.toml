@@ -1,6 +1,6 @@
 [package]
 authors = ["ende <endepointe@gmail.com>"]
-categories = ["network programming", "log analysis"]
+categories = ["filesystem"]
 description = "A zeek log analysis library implemented in Rust"
 name = "log-analysis"
 version = "0.1.0"
