@@ -1,4 +1,4 @@
-use log_analysis::{LogType, LogHeader, LogDirectory, SearchParams};
+use log_analysis::{LogType, LogHeader, LogDirectory, SearchParams, SearchError};
 use log_analysis::PathError;
 use std::path::Path;
 
@@ -38,10 +38,37 @@ fn test_create_log_directory()
 #[test]
 fn test_find()
 {
+    let mut params = SearchParams::new(Path::new("2024-07"));
+    assert_eq!(params, Err(SearchError::InvalidDate));
+
+    let mut params = SearchParams::new(Path::new("2024-07-02"));
+    assert!(params.is_ok());
+
     let mut s = LogDirectory::new(Some(Path::new("zeek-test-logs")));
-    let mut params = SearchParams::new();
-    params.log_type = Some(LogType::CONN);
-    dbg!(s);
+    match &mut s 
+    {
+        Ok(dir) => {
+            let _ = dir.find(&params.unwrap());
+        }
+        Err(_) => {
+            todo!();
+        }
+    }
+
+    let mut params = SearchParams::new(Path::new("2024-07-30"));
+    assert!(params.is_ok());
+
+    let mut s = LogDirectory::new(Some(Path::new("zeek-test-logs")));
+    match &mut s 
+    {
+        Ok(dir) => {
+            let invalid = dir.find(&params.unwrap());
+            assert_eq!(invalid, Err(SearchError::InsufficientParams));
+        }
+        Err(_) => {
+            todo!();
+        }
+    }
 }
 
 #[test]

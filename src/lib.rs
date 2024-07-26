@@ -18,7 +18,16 @@ PathError
     PrefixUnspecified,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
+pub enum
+SearchError
+{
+    InvalidDate,
+    InsufficientParams
+}
+
+
+#[derive(Debug, PartialEq, Eq)]
 pub enum 
 LogType
 {
@@ -84,31 +93,11 @@ impl std::str::FromStr for LogType
             "capture_loss" => Ok(LogType::CAPTURE_LOSS),
             "reporter" => Ok(LogType::REPORTER),
             "sip" => Ok(LogType::SIP),
-            _ => Err("LogType not found".to_string()),
+            _ => Err("LogTypeNotFound".to_string()),
         }
     }
 }
 
-
-#[derive(Debug)]
-pub struct
-SearchParams<'a>
-{
-    pub log_type: Option<LogType>,
-    pub ip: Option<&'a str>,
-    pub time_range: Option<&'a str>, // todo
-}
-impl<'a> SearchParams<'a>
-{
-    pub fn new() -> Self
-    {
-        SearchParams {
-            log_type: None,
-            ip: None,
-            time_range: None,
-        }
-    }
-}
 
 #[derive(Debug,Clone,PartialEq,Eq)]
 pub struct 
@@ -254,18 +243,147 @@ impl<'a> LogData<'a>
 pub struct
 LogDirectory<'a>
 {
-    day: &'a str,
     path_prefix: Option<&'a str>,
-    pub files: BTreeMap<String, LogData<'a>>,
+    pub dates: BTreeMap<String, LogData<'a>>,
 }
 impl<'a> LogDirectory<'a>
 {
+    // Initializes structure to search through logs using the path_prefix/ as the
+    // parent log directory.
+    pub fn new(p: Option<&'a Path>) -> Result<Self, PathError>
+    {
+        match p 
+        {
+            None => {
+                // check whether the default paths exist
+                let opt_zeek = std::path::Path::new("/opt/zeek/");
+                let usr_local_zeek = std::path::Path::new("/usr/local/zeek/");
+                if opt_zeek.is_dir() 
+                {
+                    return Ok(LogDirectory {
+                        path_prefix: opt_zeek.to_str(),
+                        dates: BTreeMap::new(),
+                    })
+                } 
+                if usr_local_zeek.is_dir() 
+                {
+                    return Ok(LogDirectory {
+                        path_prefix: usr_local_zeek.to_str(),
+                        dates: BTreeMap::new(),
+                    })
+                } 
+                return Err(PathError::PrefixUnspecified)
+            }
+            Some(path) => {
+                let parent_log_dir = std::path::Path::new(path);
+                if parent_log_dir.is_dir() 
+                {
+                    return Ok(LogDirectory {
+                        path_prefix: path.to_str(),
+                        dates: BTreeMap::new(),
+                    })
+                }
+                return Err(PathError::NotFound)
+            }
+        }
+    }
+
+    fn path_prefix_exists(&self) -> bool 
+    {
+        match &self.path_prefix 
+        {
+            Some(path) => { return true }
+            None => { return false}
+        }
+    }
+
+    fn check_params(&self, params: &SearchParams) -> bool 
+    {
+        match (&params.end_date, &params.log_type, &params.ip) 
+        {
+            (None, None, None) => {
+                return false 
+            }
+            _ => {
+                return true 
+            }
+        }
+    }
+    // requires a start date and one additional parameter.
+    pub fn find(&self, params: &SearchParams) -> Result<(), SearchError> 
+    {
+        if Self::check_params(self, params) == false
+        {
+            return Err(SearchError::InsufficientParams)
+        } 
+
+        let mut search_path = String::new();
+
+        if Self::path_prefix_exists(self) 
+        {
+            search_path = format!("{}/{}", &self.path_prefix.unwrap(), params.start_date);
+        } 
+        else 
+        {
+            search_path = format!("{}/", params.start_date);
+        }
+
+        let path = Path::new(search_path.as_str());
+
+        match path.is_dir()
+        {
+            true => {
+                todo!();
+                //for date in path.read_dir().expect("unable to read date in given path") 
+                //{
+                //    if let Ok(date) = date {
+                //        println!("{date:?}");
+                //    } 
+                //}
+            }
+            false => {
+                dbg!("handle the error where the path does not result in a valid log date");
+            }
+        }
+        Ok(())
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct
+SearchParams<'a>
+{
+    pub start_date: &'a str,
+    pub end_date: Option<&'a str>,
+    pub log_type: Option<LogType>,
+    pub ip: Option<&'a str>,
+}
+impl<'a> SearchParams<'a>
+{
+    pub fn new(start: &'a Path) -> Result<Self, SearchError>
+    {
+        match Self::check_date_format(start)
+        {
+            true => {
+                Ok(SearchParams {
+                    start_date: start.to_str().unwrap(),
+                    end_date: None,
+                    log_type: None,
+                    ip: None,
+                })
+            }
+            false => {
+                Err(SearchError::InvalidDate)
+            }
+        }
+    }
+
     fn check_date_format(p: &'a Path) -> bool
     {
         // The default path of zeek logs on debian is /opt/zeek/logs.
         // The user is responsible for specifying a valid directory path to 
         // reach the path/to/zeek/logs/YYYY-MM-DD directories.
-        // The log directory the user should expect is the format yyyy-mm-dd.
+        // The expected format is the format yyyy-mm-dd.
 
         let val = &p.to_str();
         if let Some(v) = val 
@@ -286,82 +404,9 @@ impl<'a> LogDirectory<'a>
             }
             return true 
         } 
-
         false
     }
-
-    // Initializes structure to search through logs using the path_prefix/ as the
-    // parent log directory.
-    pub fn new(p: Option<&'a Path>) -> Result<Self, PathError>
-    {
-        match p 
-        {
-            None => {
-                // check whether the default paths exist
-                let opt_zeek = std::path::Path::new("/opt/zeek/");
-                let usr_local_zeek = std::path::Path::new("/usr/local/zeek/");
-                if opt_zeek.is_dir() 
-                {
-                    return Ok(LogDirectory {
-                        day: "may not need this field",
-                        path_prefix: opt_zeek.to_str(),
-                        files: BTreeMap::new(),
-                    })
-                } 
-                if usr_local_zeek.is_dir() 
-                {
-                    return Ok(LogDirectory {
-                        day: "may not need this field",
-                        path_prefix: usr_local_zeek.to_str(),
-                        files: BTreeMap::new(),
-                    })
-                } 
-                return Err(PathError::PrefixUnspecified)
-            }
-            Some(path) => {
-                // check if the user oversupplied a path, (e.g: /path_prefix/yyyy-mm-dd) 
-                // where yyyy-mm-dd should not have been supplied.
-                let check = Self::check_date_format(path);
-                dbg!(check,path);
-                println!("");
-                let parent_log_dir = std::path::Path::new(path);
-                if parent_log_dir.is_dir() 
-                {
-                    return Ok(LogDirectory {
-                        day: "may not need this field",
-                        path_prefix: path.to_str(),
-                        files: BTreeMap::new(),
-                    })
-                }
-                return Err(PathError::NotFound)
-            }
-        }
-    }
-
-    pub fn find_by_day(&mut self, params: SearchParams) -> std::io::Result<()> 
-    {
-        match self.path_prefix 
-        {
-            Some(path) => {
-
-                match params.log_type 
-                {
-                    Some(t) => {
-                        println!("{} {t:?}", line!());
-                    }
-                    None => {}
-                }
-            }
-            None => {
-                println!("{}:{} -- {:?}",file!(),line!(), self.path_prefix); 
-                todo!();
-            }
-        }
-
-        Ok(())
-    }
 }
-
 
 // Will use for data hits
 fn 
