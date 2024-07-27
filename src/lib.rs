@@ -292,7 +292,7 @@ impl<'a> LogDirectory<'a>
         }
     }
 
-    fn check_params(&self, params: &SearchParams) -> (bool, u8) // 0001, 0101, etc.
+    fn check_params(&self, params: &SearchParams) -> u8 // 0001, 0101, etc.
     {
         // There must be a better way to check what params have been provided...
         // This current approach will result in pow(n,2) match arms, where n is the 
@@ -304,21 +304,21 @@ impl<'a> LogDirectory<'a>
         //
         match (&params.start_date, &params.end_date, &params.log_type, &params.ip) 
         {
-            (None, None, None, None) => return (false, 0),
-            (Some(start), None, None, None) => return (true, 1),
-            (Some(start), Some(end), _log_type, _ip) => return (true, 2),
-            (Some(start), _end , Some(log_type), _ip) => return (true, 3),
-            (Some(start), _end , _log_type, Some(ip)) => return (true, 4),
-            _ => return (false, 0),
+            (None, None, None, None) => return 0,
+            (Some(start), None, None, None) => return 1,
+            (Some(start), Some(end), _log_type, _ip) => return 2,
+            (Some(start), _end , Some(log_type), _ip) => return 3,
+            (Some(start), _end , _log_type, Some(ip)) => return 4,
+            _ => return 0,
         }
     }
 
     // requires a start date and one additional parameter.
     pub fn find(&self, params: &SearchParams) -> Result<(), Error> 
     {
-        let search : (bool, u8) = Self::check_params(self, params);
+        let search : u8 = Self::check_params(self, params);
 
-        if search.0 == false
+        if search == 0 
         {
             return Err(Error::SearchInsufficientParams)
         } 
@@ -343,7 +343,7 @@ impl<'a> LogDirectory<'a>
         {
             true => {
                 dbg!(&path);
-                match search.1
+                match search
                 {
                     _ => {
                         dbg!(search);
