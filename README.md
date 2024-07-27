@@ -1,4 +1,4 @@
-# log-analysis
+# log-analysis (not complete)
 
 Rust library designed to read and parse Zeek logs. It includes an optional `ip2location` feature for IP geolocation.
 

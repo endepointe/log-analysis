@@ -12,20 +12,15 @@ use std::collections::btree_map::BTreeMap;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum
-PathError
+ErrorType
 {
-    NotFound,
-    PrefixUnspecified,
+    PathNotFound,
+    PathPrefixUnspecified,
+    SearchInvalidStartDate,
+    SearchInvalidEndDate,
+    SearchInsufficientParams
 }
-
-#[derive(Debug, PartialEq, Eq)]
-pub enum
-SearchError
-{
-    InvalidDate,
-    InsufficientParams
-}
-
+pub type Error = ErrorType;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum 
@@ -250,7 +245,7 @@ impl<'a> LogDirectory<'a>
 {
     // Initializes structure to search through logs using the path_prefix/ as the
     // parent log directory.
-    pub fn new(p: Option<&'a Path>) -> Result<Self, PathError>
+    pub fn new(p: Option<&'a Path>) -> Result<Self, Error>
     {
         match p 
         {
@@ -272,7 +267,7 @@ impl<'a> LogDirectory<'a>
                         dates: BTreeMap::new(),
                     })
                 } 
-                return Err(PathError::PrefixUnspecified)
+                return Err(Error::PathPrefixUnspecified)
             }
             Some(path) => {
                 let parent_log_dir = std::path::Path::new(path);
@@ -283,7 +278,7 @@ impl<'a> LogDirectory<'a>
                         dates: BTreeMap::new(),
                     })
                 }
-                return Err(PathError::NotFound)
+                return Err(Error::PathNotFound)
             }
         }
     }
@@ -297,35 +292,49 @@ impl<'a> LogDirectory<'a>
         }
     }
 
-    fn check_params(&self, params: &SearchParams) -> bool 
+    fn check_params(&self, params: &SearchParams) -> (bool, u8) // 0001, 0101, etc.
     {
-        match (&params.end_date, &params.log_type, &params.ip) 
+        // There must be a better way to check what params have been provided...
+        // This current approach will result in pow(n,2) match arms, where n is the 
+        // number of params in the struct.
+        //
+        // At the least, there should be at least one param.
+        //
+        // Returns a tuple that specifies what searches to perform.
+        //
+        match (&params.start_date, &params.end_date, &params.log_type, &params.ip) 
         {
-            (None, None, None) => {
-                return false 
-            }
-            _ => {
-                return true 
-            }
+            (None, None, None, None) => return (false, 0),
+            (Some(start), None, None, None) => return (true, 1),
+            (Some(start), Some(end), _log_type, _ip) => return (true, 2),
+            (Some(start), _end , Some(log_type), _ip) => return (true, 3),
+            (Some(start), _end , _log_type, Some(ip)) => return (true, 4),
+            _ => return (false, 0),
         }
     }
-    // requires a start date and one additional parameter.
-    pub fn find(&self, params: &SearchParams) -> Result<(), SearchError> 
-    {
-        if Self::check_params(self, params) == false
-        {
-            return Err(SearchError::InsufficientParams)
-        } 
 
+    // requires a start date and one additional parameter.
+    pub fn find(&self, params: &SearchParams) -> Result<(), Error> 
+    {
+        let search : (bool, u8) = Self::check_params(self, params);
+
+        if search.0 == false
+        {
+            return Err(Error::SearchInsufficientParams)
+        } 
         let mut search_path = String::new();
 
         if Self::path_prefix_exists(self) 
         {
-            search_path = format!("{}/{}", &self.path_prefix.unwrap(), params.start_date);
+            search_path.push_str(&self.path_prefix.unwrap());
+            search_path.push_str("/");
+            search_path.push_str(params.start_date.unwrap());
+            search_path.push_str("/");
         } 
         else 
         {
-            search_path = format!("{}/", params.start_date);
+            search_path.push_str(params.start_date.unwrap());
+            search_path.push_str("/");
         }
 
         let path = Path::new(search_path.as_str());
@@ -333,51 +342,66 @@ impl<'a> LogDirectory<'a>
         match path.is_dir()
         {
             true => {
-                todo!();
-                //for date in path.read_dir().expect("unable to read date in given path") 
-                //{
-                //    if let Ok(date) = date {
-                //        println!("{date:?}");
-                //    } 
-                //}
+                dbg!(&path);
+                match search.1
+                {
+                    _ => {
+                        dbg!(search);
+                        return Ok(())
+                    }
+                }
+                return Ok(())
             }
             false => {
                 dbg!("handle the error where the path does not result in a valid log date");
+                return Err(Error::SearchInvalidStartDate)
             }
         }
         Ok(())
     }
 }
 
+fn
+locate() -> ()
+{
+}
+
 #[derive(Debug, PartialEq, Eq)]
 pub struct
 SearchParams<'a>
 {
-    pub start_date: &'a str,
+    pub start_date: Option<&'a str>,
     pub end_date: Option<&'a str>,
     pub log_type: Option<LogType>,
     pub ip: Option<&'a str>,
 }
 impl<'a> SearchParams<'a>
 {
-    pub fn new(start: &'a Path) -> Result<Self, SearchError>
+    pub fn new() -> Self 
+    {
+        SearchParams {
+            start_date: None,
+            end_date: None,
+            log_type: None,
+            ip: None,
+        }
+    }
+    pub fn set_start_date(&mut self, start: &'a Path) -> Result<(), Error>
     {
         match Self::check_date_format(start)
         {
             true => {
-                Ok(SearchParams {
-                    start_date: start.to_str().unwrap(),
-                    end_date: None,
-                    log_type: None,
-                    ip: None,
-                })
+                self.start_date = Some(start.to_str().unwrap()); 
+                Ok(())
             }
             false => {
-                Err(SearchError::InvalidDate)
+                Err(Error::SearchInvalidStartDate)
             }
         }
     }
 
+    // todo: check that the chars in range between [0-9]. 
+    // For now, [Aa-Zz] passes and it shouldn't.
     fn check_date_format(p: &'a Path) -> bool
     {
         // The default path of zeek logs on debian is /opt/zeek/logs.
