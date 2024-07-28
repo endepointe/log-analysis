@@ -13,7 +13,7 @@ ZeekLogData<'a>
 }
 impl<'a> ZeekLogData<'a>
 {
-    fn new(h: &'a ZeekLogHeader) -> Self
+    pub fn read(h: &'a ZeekLogHeader) -> Self
     {
         let fields = h.get_fields();
         let mut f = HashMap::<&'a str, Vec<&'a str>>::new();

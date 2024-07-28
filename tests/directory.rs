@@ -40,7 +40,7 @@ fn test_create_log_directory()
 }
 
 #[test]
-fn test_find()
+fn test_search()
 {
     let mut search = ZeekSearchParams::new();
 
@@ -55,7 +55,7 @@ fn test_find()
     match &mut s 
     {
         Ok(dir) => {
-            let res = dir.find(&search);
+            let res = dir.search(&search);
             assert!(res.is_ok());
         }
         Err(_) => {
@@ -73,7 +73,7 @@ fn test_find()
     match &mut s 
     {
         Ok(dir) => {
-            let res = dir.find(&params.unwrap());
+            let res = dir.search(&params.unwrap());
             assert_eq!(res, Err(Error::SearchInsufficientParams));
         }
         Err(_) => {
@@ -86,7 +86,7 @@ fn test_find()
     match &mut s 
     {
         Ok(dir) => {
-            let res = dir.find(&params.unwrap());
+            let res = dir.search(&params.unwrap());
             assert_eq!(res, Err(Error::SearchInsufficientParams));
         }
         Err(e) => {
@@ -104,7 +104,7 @@ fn test_find()
         Ok(dir) => {
             dbg!(&dir);
             params.end_date = Some("2024-07-03");
-            let invalid = dir.find(&params.unwrap());
+            let invalid = dir.search(&params.unwrap());
             assert_eq!(invalid, Err(Error::SearchInsufficientParams));
         }
         Err(_) => {

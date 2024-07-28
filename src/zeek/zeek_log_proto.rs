@@ -12,6 +12,7 @@ ZeekProtocolType
     SSL,
     X509,
     SMTP,
+    SNMP,
     SSH,
     PE,
     DHCP,
@@ -34,8 +35,8 @@ ZeekProtocolType
 }
 impl std::str::FromStr for ZeekProtocolType
 {
-    type Err = String;
-    fn from_str(name: &str) -> Result<ZeekProtocolType, Self::Err>
+    type Err = Error;
+    fn from_str(name: &str) -> Result<ZeekProtocolType, Error>
     {
         match name
         {
@@ -47,6 +48,7 @@ impl std::str::FromStr for ZeekProtocolType
             "ssl" => Ok(ZeekProtocolType::SSL),
             "x509" => Ok(ZeekProtocolType::X509),
             "smtp" => Ok(ZeekProtocolType::SMTP),
+            "snmp" => Ok(ZeekProtocolType::SNMP),
             "ssh" => Ok(ZeekProtocolType::SSH),
             "pe" => Ok(ZeekProtocolType::PE),
             "dhcp" => Ok(ZeekProtocolType::DHCP),
@@ -66,7 +68,7 @@ impl std::str::FromStr for ZeekProtocolType
             "capture_loss" => Ok(ZeekProtocolType::CAPTURELOSS),
             "reporter" => Ok(ZeekProtocolType::REPORTER),
             "sip" => Ok(ZeekProtocolType::SIP),
-            _ => Err("ZeekProtocolTypeNotFound".to_string()), // add error type instead of string
+            _ => Err(Error::ZeekProtocolTypeNotFound), // add error type instead of string
         }
     }
 }

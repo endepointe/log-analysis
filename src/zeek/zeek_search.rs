@@ -16,12 +16,12 @@ use std::collections::btree_map::BTreeMap;
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct
-ZeekLogDirectory<'a>
+ZeekSearch<'a>
 {
     path_prefix: Option<&'a str>,
     pub dates: BTreeMap<String, ZeekLogData<'a>>,
 }
-impl<'a> ZeekLogDirectory<'a>
+impl<'a> ZeekSearch<'a>
 {
     // Initializes structure to search through logs using the path_prefix/ as the
     // parent log directory.
@@ -94,7 +94,7 @@ impl<'a> ZeekLogDirectory<'a>
     }
 
     // requires a start date and one additional parameter.
-    pub fn search(&self, params: &ZeekSearchParams) -> Result<(), Error> 
+    pub fn find(&self, params: &ZeekSearchParams) -> Result<(), Error> 
     {
         let search : u8 = Self::check_params(self, params);
 
@@ -125,19 +125,6 @@ impl<'a> ZeekLogDirectory<'a>
                 dbg!(&path);
                 match search
                 {
-                    1 => { // only start date provided. return general information about the logs.
-                        let mut c = 0;
-                        for entry in std::fs::read_dir(&path).expect("error reading path") 
-                        {
-                            if c < 200
-                            {
-                                let log = entry.unwrap();
-                                let header = ZeekLogHeader::read(log.path().as_path());
-                                let data = ZeekLogData::read(&header);
-                            }
-                            c += 1;
-                        }
-                    }
                     _ => {
                         dbg!(search);
                         return Ok(())
@@ -146,6 +133,7 @@ impl<'a> ZeekLogDirectory<'a>
                 return Ok(())
             }
             false => {
+                dbg!("handle the error where the path does not result in a valid log date");
                 return Err(Error::SearchInvalidStartDate)
             }
         }

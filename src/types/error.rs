@@ -8,6 +8,7 @@ ErrorType
 {
     PathNotFound,
     PathPrefixUnspecified,
+    ZeekProtocolTypeNotFound,
     SearchInvalidStartDate,
     SearchInvalidEndDate,
     SearchInsufficientParams

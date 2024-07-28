@@ -28,7 +28,7 @@ ZeekLogHeader
 }
 impl ZeekLogHeader
 {
-    pub fn new(p : &std::path::Path) -> Self
+    pub fn read(p : &std::path::Path) -> Self
     {
         let output = std::process::Command::new("zcat")
             .arg(&p)
@@ -58,7 +58,12 @@ impl ZeekLogHeader
                                 let result = buffer.split(' ')
                                                 .collect::<Vec<&str>>()[1]
                                                 .strip_prefix("\\x");
-                                let result = u8::from_str_radix(result.unwrap(), 16)
+
+                                if result == None { continue; } // File does not have header info.
+                                                                // This file may have relevant
+                                                                // information. Unsure how to
+                                                                // handle it at this time.
+                                let result = u8::from_str_radix(result.unwrap().trim(), 16)
                                     .expect("LOG_SEPARATER_CHAR: "); // add error to types. 
                                                                      // do better.
                                 separator = char::from(result);

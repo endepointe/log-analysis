@@ -4,7 +4,7 @@ Rust library designed to read and parse Zeek logs. It includes an optional `ip2l
 
 ## Features
 
-- Read and parse Zeek logs
+- Search through various logs, such as zeek, and return meaningful results for other applications.
 - Optional IP geolocation using `ip2location`
 
 ## Installation
