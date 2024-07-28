@@ -1,5 +1,5 @@
 use crate::types::error::Error;
-use crate::types::log_proto::ProtocolType;
+use crate::zeek::zeek_log_proto::ZeekProtocolType;
 
 use std::str::FromStr;
 use std::fs::{self, File};
@@ -13,7 +13,7 @@ use std::collections::btree_map::BTreeMap;
 
 #[derive(Debug,Clone,PartialEq,Eq)]
 pub struct 
-LogHeader
+ZeekLogHeader
 {
     pub separator: char,
     pub set_separator: String,
@@ -26,7 +26,7 @@ LogHeader
     pub fields: Vec<String>,
     pub types: Vec<String>,
 }
-impl LogHeader
+impl ZeekLogHeader
 {
     pub fn new(p : &std::path::Path) -> Self
     {
@@ -59,7 +59,8 @@ impl LogHeader
                                                 .collect::<Vec<&str>>()[1]
                                                 .strip_prefix("\\x");
                                 let result = u8::from_str_radix(result.unwrap(), 16)
-                                    .expect("LOG_SEPARATER_CHAR: ");
+                                    .expect("LOG_SEPARATER_CHAR: "); // add error to types. 
+                                                                     // do better.
                                 separator = char::from(result);
                             }
                             1 => {
@@ -105,7 +106,7 @@ impl LogHeader
             }
         }
 
-        LogHeader {
+        ZeekLogHeader {
             separator,
             set_separator,
             empty_field,

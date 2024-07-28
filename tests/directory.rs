@@ -1,9 +1,9 @@
 
 use log_analysis::{
-    types::search::SearchParams, 
-    types::log_directory::LogDirectory,
-    types::log_proto::ProtocolType,
-    types::log_header::LogHeader,
+    zeek::zeek_search_params::ZeekSearchParams, 
+    zeek::zeek_log_directory::ZeekLogDirectory,
+    zeek::zeek_log_proto::ZeekProtocolType,
+    zeek::zeek_log_header::ZeekLogHeader,
     types::error::Error,
 };
 use std::path::Path;
@@ -20,29 +20,29 @@ fn test_env_vars()
 #[test]
 fn test_create_log_directory()
 {
-    let s = LogDirectory::new(None);
+    let s = ZeekLogDirectory::new(None);
     dbg!(&s);
     assert_eq!(s, Err(Error::PathPrefixUnspecified));
 
-    let s = LogDirectory::new(Some(Path::new("zeek-test-logs")));
+    let s = ZeekLogDirectory::new(Some(Path::new("zeek-test-logs")));
     dbg!(&s);
     assert!(s.is_ok());
 
     // should look back to zeek-test-logs
-    let s = LogDirectory::new(Some(Path::new("zeek-test-logs/2024-07-03")));
+    let s = ZeekLogDirectory::new(Some(Path::new("zeek-test-logs/2024-07-03")));
     assert!(s.is_ok());
 
-    let s = LogDirectory::new(Some(Path::new("zeek-test-logs/2024-0a-02")));
+    let s = ZeekLogDirectory::new(Some(Path::new("zeek-test-logs/2024-0a-02")));
     assert_eq!(s, Err(Error::PathNotFound));
 
-    let s = LogDirectory::new(Some(Path::new("path/does/not/exist")));
+    let s = ZeekLogDirectory::new(Some(Path::new("path/does/not/exist")));
     assert_eq!(s, Err(Error::PathNotFound));
 }
 
 #[test]
 fn test_find()
 {
-    let mut search = SearchParams::new();
+    let mut search = ZeekSearchParams::new();
 
     let search_result = search.set_start_date(Path::new("2024-07"));
     assert_eq!(search_result, Err(Error::SearchInvalidStartDate));
@@ -51,7 +51,7 @@ fn test_find()
     assert_ne!(search_result, Err(Error::SearchInvalidStartDate));
     assert!(search_result.is_ok());
 
-    let mut s = LogDirectory::new(Some(Path::new("zeek-test-logs")));
+    let mut s = ZeekLogDirectory::new(Some(Path::new("zeek-test-logs")));
     match &mut s 
     {
         Ok(dir) => {
@@ -66,10 +66,10 @@ fn test_find()
     /*
     assert_eq!(params, Err(Error::SearchInvalidDate));
 
-    let mut params = SearchParams::start_date(Path::new("2024-07-02"));
+    let mut params = ZeekSearchParams::start_date(Path::new("2024-07-02"));
     assert!(params.is_ok());
 
-    let mut s = LogDirectory::new(Some(Path::new("zeek-test-logs")));
+    let mut s = ZeekLogDirectory::new(Some(Path::new("zeek-test-logs")));
     match &mut s 
     {
         Ok(dir) => {
@@ -81,8 +81,8 @@ fn test_find()
         }
     }
 
-    let mut params = SearchParams::start_date(Path::new("2024-07-02"));
-    let mut s = LogDirectory::new(Some(Path::new("zeek-test-logs")));
+    let mut params = ZeekSearchParams::start_date(Path::new("2024-07-02"));
+    let mut s = ZeekLogDirectory::new(Some(Path::new("zeek-test-logs")));
     match &mut s 
     {
         Ok(dir) => {
@@ -95,10 +95,10 @@ fn test_find()
         }
     }
 
-    let mut params = SearchParams::start_date(Path::new("2024-07-02"));
+    let mut params = ZeekSearchParams::start_date(Path::new("2024-07-02"));
     assert!(params.is_ok());// passes here 
 
-    let mut s = LogDirectory::new(Some(Path::new("zeek-test-logs")));
+    let mut s = ZeekLogDirectory::new(Some(Path::new("zeek-test-logs")));
     match &mut s 
     {
         Ok(dir) => {

@@ -1,10 +1,12 @@
 pub mod types;
+pub mod zeek;
+
 use crate::types::error::Error;
-use crate::types::log_proto::ProtocolType;
-use crate::types::log_header::LogHeader;
-use crate::types::log_data::LogData;
-use crate::types::log_directory::LogDirectory;
-use crate::types::search::SearchParams;
+use crate::zeek::zeek_log_proto::ZeekProtocolType;
+use crate::zeek::zeek_log_header::ZeekLogHeader;
+use crate::zeek::zeek_log_data::ZeekLogData;
+use crate::zeek::zeek_log_directory::ZeekLogDirectory;
+use crate::zeek::zeek_search_params::ZeekSearchParams;
 
 // May use for data hits
 fn 

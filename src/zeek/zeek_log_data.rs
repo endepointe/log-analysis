@@ -1,27 +1,19 @@
-//use crate::types::error::Error;
-//use crate::types::log::LogType;
-use crate::types::log_header::LogHeader;
-
-//use std::str::FromStr;
-//use std::fs::{self, File};
-//use std::io::{self, Read};
-//use std::path::Path;
+use crate::zeek::zeek_log_header::ZeekLogHeader;
 use std::collections::HashMap;
-//use std::collections::btree_map::BTreeMap;
 
 // default log path: /usr/local/zeek or /opt/zeek or custom/path/
 // https://docs.zeek.org/en/master/quickstart.html#filesystem-walkthrough
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct 
-LogData<'a> 
+ZeekLogData<'a> 
 {
-    header: &'a LogHeader,
+    header: &'a ZeekLogHeader,
     data: HashMap<&'a str, Vec<&'a str>>,
 }
-impl<'a> LogData<'a>
+impl<'a> ZeekLogData<'a>
 {
-    fn new(h: &'a LogHeader) -> Self
+    fn new(h: &'a ZeekLogHeader) -> Self
     {
         let fields = h.get_fields();
         let mut f = HashMap::<&'a str, Vec<&'a str>>::new();
@@ -29,7 +21,7 @@ impl<'a> LogData<'a>
         {
             f.insert(&field, Vec::<&'a str>::new());
         }
-        LogData {header: h, data: f}
+        ZeekLogData {header: h, data: f}
     }
     fn add_field_entry(&mut self, key: &'a str, val: &'a str)
     {

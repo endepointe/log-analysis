@@ -1,8 +1,8 @@
 use crate::types::error::Error;
-use crate::types::log_proto::ProtocolType;
-use crate::types::log_header::LogHeader;
-use crate::types::log_data::LogData;
-use crate::types::log_directory::LogDirectory;
+use crate::zeek::zeek_log_proto::ZeekProtocolType;
+use crate::zeek::zeek_log_header::ZeekLogHeader;
+use crate::zeek::zeek_log_data::ZeekLogData;
+use crate::zeek::zeek_log_directory::ZeekLogDirectory;
 
 use std::str::FromStr;
 use std::fs::{self, File};
@@ -16,18 +16,18 @@ use std::collections::btree_map::BTreeMap;
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct
-SearchParams<'a>
+ZeekSearchParams<'a>
 {
     pub start_date: Option<&'a str>,
     pub end_date: Option<&'a str>,
-    pub log_type: Option<ProtocolType>,
+    pub log_type: Option<ZeekProtocolType>,
     pub ip: Option<&'a str>,
 }
-impl<'a> SearchParams<'a>
+impl<'a> ZeekSearchParams<'a>
 {
     pub fn new() -> Self 
     {
-        SearchParams {
+        ZeekSearchParams {
             start_date: None,
             end_date: None,
             log_type: None,
