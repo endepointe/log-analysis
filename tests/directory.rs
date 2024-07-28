@@ -1,4 +1,11 @@
-use log_analysis::{LogType, LogHeader, LogDirectory, SearchParams, Error};
+
+use log_analysis::{
+    types::search::SearchParams, 
+    types::log_directory::LogDirectory,
+    types::log_proto::ProtocolType,
+    types::log_header::LogHeader,
+    types::error::Error,
+};
 use std::path::Path;
 
 #[test]
@@ -31,8 +38,6 @@ fn test_create_log_directory()
     let s = LogDirectory::new(Some(Path::new("path/does/not/exist")));
     assert_eq!(s, Err(Error::PathNotFound));
 }
-
-
 
 #[test]
 fn test_find()
