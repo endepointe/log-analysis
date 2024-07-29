@@ -1,7 +1,5 @@
 use crate::types::error::Error;
 use crate::zeek::zeek_log_proto::ZeekProtocol;
-use crate::zeek::zeek_log_header::ZeekLogHeader;
-use crate::zeek::zeek_log_data::ZeekLogData;
 use crate::zeek::zeek_log_directory::ZeekLogDirectory;
 
 use std::str::FromStr;

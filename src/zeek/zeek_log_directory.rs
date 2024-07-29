@@ -1,7 +1,6 @@
 use crate::types::error::Error;
 use crate::zeek::zeek_log_proto::ZeekProtocol;
-use crate::zeek::zeek_log_header::ZeekLogHeader;
-use crate::zeek::zeek_log_data::ZeekLogData;
+use crate::zeek::zeek_log::ZeekLog;
 use crate::zeek::zeek_search_params::ZeekSearchParams;
 
 use std::str::FromStr;
@@ -14,12 +13,14 @@ use std::collections::btree_map::BTreeMap;
 // default log path: /usr/local/zeek or /opt/zeek or custom/path/
 // https://docs.zeek.org/en/master/quickstart.html#filesystem-walkthrough
 
+
+
 #[derive(Debug, PartialEq, Eq)]
 pub struct
 ZeekLogDirectory<'a>
 {
     path_prefix: Option<&'a str>,
-    pub dates: BTreeMap<String, ZeekLogData<'a>>,
+    pub dates: BTreeMap<String, ZeekLog>,
 }
 impl<'a> ZeekLogDirectory<'a>
 {
@@ -129,10 +130,9 @@ impl<'a> ZeekLogDirectory<'a>
                         for entry in std::fs::read_dir(&path).expect("error reading path") 
                         {
                             let log = entry.unwrap();
-                            //let header = ZeekLogHeader::read(log.path().as_path());
-                            let mut data = HashMap::<String, Vec<String>>::new();
-                            let data = ZeekLogData::read(log.path().as_path(), &mut data);
-                            dbg!(&data);
+                            let data = ZeekLog::read(log.path().as_path());
+                            //dbg!(&data);
+                            break;
                         }
                     }
                     _ => {
