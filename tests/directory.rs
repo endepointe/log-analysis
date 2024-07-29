@@ -2,7 +2,7 @@
 use log_analysis::{
     zeek::zeek_search_params::ZeekSearchParams, 
     zeek::zeek_log_directory::ZeekLogDirectory,
-    zeek::zeek_log_proto::ZeekProtocolType,
+    zeek::zeek_log_proto::ZeekProtocol,
     zeek::zeek_log_header::ZeekLogHeader,
     types::error::Error,
 };

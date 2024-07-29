@@ -6,26 +6,43 @@ use std::collections::HashMap;
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct 
-ZeekLogData<'a> 
+ZeekLogData<'a>
 {
-    header: &'a ZeekLogHeader,
-    data: HashMap<&'a str, Vec<&'a str>>,
+    //header: &'a ZeekLogHeader,
+    //data: &'a mut HashMap<&'a str, Vec<&'a str>>,
+    data: &'a HashMap<String, Vec<String>>
 }
 impl<'a> ZeekLogData<'a>
 {
-    pub fn read(h: &'a ZeekLogHeader) -> Self
+
+    pub fn read(p: &std::path::Path, data: &'a mut HashMap::<String, Vec<String>>) -> Self
     {
-        let fields = h.get_fields();
-        let mut f = HashMap::<&'a str, Vec<&'a str>>::new();
-        for field in fields
+        let h : ZeekLogHeader = ZeekLogHeader::read(p);
+        let h = h.clone();
+        //let mut data = HashMap::new();
+        //let mut f = HashMap::<&'a str, Vec<&'a str>>::new();
+        for field in h.fields 
         {
-            f.insert(&field, Vec::<&'a str>::new());
+            data.insert(field, Vec::<String>::new());
         }
-        ZeekLogData {header: h, data: f}
+        ZeekLogData { data }
     }
-    fn add_field_entry(&mut self, key: &'a str, val: &'a str)
-    {
-        self.data.entry(key).or_insert(Vec::new()).push(val);
-    }
+
+    //pub fn _read(h: &'a ZeekLogHeader) -> Self
+    //{
+    //    let fields = h.get_fields();
+    //    let mut f = HashMap::<&'a str, Vec<&'a str>>::new();
+    //    for field in fields
+    //    {
+    //        //std::thread::sleep(std::time::Duration::from_millis(500));
+    //        //println!("Inserting field: {}", &field);
+    //        f.insert(&field, Vec::<&'a str>::new());
+    //    }
+    //    ZeekLogData {header: h, data: f}
+    //}
+    //fn add_field_entry(&mut self, key: &'a str, val: &'a str)
+    //{
+    //    self.data.entry(key).or_insert(Vec::new()).push(val);
+    //}
 }
 

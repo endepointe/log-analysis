@@ -1,5 +1,5 @@
 use crate::types::error::Error;
-use crate::zeek::zeek_log_proto::ZeekProtocolType;
+use crate::zeek::zeek_log_proto::ZeekProtocol;
 use crate::zeek::zeek_log_header::ZeekLogHeader;
 use crate::zeek::zeek_log_data::ZeekLogData;
 use crate::zeek::zeek_search_params::ZeekSearchParams;
@@ -126,16 +126,13 @@ impl<'a> ZeekLogDirectory<'a>
                 match search
                 {
                     1 => { // only start date provided. return general information about the logs.
-                        let mut c = 0;
                         for entry in std::fs::read_dir(&path).expect("error reading path") 
                         {
-                            if c < 200
-                            {
-                                let log = entry.unwrap();
-                                let header = ZeekLogHeader::read(log.path().as_path());
-                                let data = ZeekLogData::read(&header);
-                            }
-                            c += 1;
+                            let log = entry.unwrap();
+                            //let header = ZeekLogHeader::read(log.path().as_path());
+                            let mut data = HashMap::<String, Vec<String>>::new();
+                            let data = ZeekLogData::read(log.path().as_path(), &mut data);
+                            dbg!(&data);
                         }
                     }
                     _ => {

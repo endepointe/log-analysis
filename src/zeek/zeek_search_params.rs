@@ -1,5 +1,5 @@
 use crate::types::error::Error;
-use crate::zeek::zeek_log_proto::ZeekProtocolType;
+use crate::zeek::zeek_log_proto::ZeekProtocol;
 use crate::zeek::zeek_log_header::ZeekLogHeader;
 use crate::zeek::zeek_log_data::ZeekLogData;
 use crate::zeek::zeek_log_directory::ZeekLogDirectory;
@@ -20,7 +20,7 @@ ZeekSearchParams<'a>
 {
     pub start_date: Option<&'a str>,
     pub end_date: Option<&'a str>,
-    pub log_type: Option<ZeekProtocolType>,
+    pub log_type: Option<ZeekProtocol>,
     pub ip: Option<&'a str>,
 }
 impl<'a> ZeekSearchParams<'a>

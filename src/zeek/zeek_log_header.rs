@@ -1,5 +1,5 @@
 use crate::types::error::Error;
-use crate::zeek::zeek_log_proto::ZeekProtocolType;
+use crate::zeek::zeek_log_proto::ZeekProtocol;
 
 use std::str::FromStr;
 use std::fs::{self, File};
