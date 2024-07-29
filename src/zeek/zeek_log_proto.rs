@@ -1,9 +1,10 @@
 use crate::types::error::Error;
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Ord, PartialOrd)]
 pub enum 
 ZeekProtocol
 {
+    NONE,
     CONN,
     DNS,
     HTTP,
@@ -33,42 +34,42 @@ ZeekProtocol
     REPORTER,
     SIP,
 }
-impl std::str::FromStr for ZeekProtocol
+//impl std::str::FromStr for ZeekProtocol
+impl ZeekProtocol
 {
-    type Err = Error;
-    fn from_str(name: &str) -> Result<ZeekProtocol, Error>
+    pub fn read(name: &str) -> ZeekProtocol
     {
         match name
         {
-            "conn" => Ok(ZeekProtocol::CONN),
-            "dns" => Ok(ZeekProtocol::DNS),
-            "http" => Ok(ZeekProtocol::HTTP),
-            "files" => Ok(ZeekProtocol::FILES),
-            "ftp" => Ok(ZeekProtocol::FTP),
-            "ssl" => Ok(ZeekProtocol::SSL),
-            "x509" => Ok(ZeekProtocol::X509),
-            "smtp" => Ok(ZeekProtocol::SMTP),
-            "snmp" => Ok(ZeekProtocol::SNMP),
-            "ssh" => Ok(ZeekProtocol::SSH),
-            "pe" => Ok(ZeekProtocol::PE),
-            "dhcp" => Ok(ZeekProtocol::DHCP),
-            "ntp" => Ok(ZeekProtocol::NTP),
-            "smb" => Ok(ZeekProtocol::SMB),
-            "irc" => Ok(ZeekProtocol::IRC),
-            "rdp" => Ok(ZeekProtocol::RDP),
-            "ldap" => Ok(ZeekProtocol::LDAP),
-            "quic" => Ok(ZeekProtocol::QUIC),
-            "traceroute" => Ok(ZeekProtocol::TRACEROUTE),
-            "tunnel" => Ok(ZeekProtocol::TUNNEL),
-            "dpd" => Ok(ZeekProtocol::DPD),
-            "known" => Ok(ZeekProtocol::KNOWN),
-            "software" => Ok(ZeekProtocol::SOFTWARE),
-            "weird" => Ok(ZeekProtocol::WEIRD),
-            "notice" => Ok(ZeekProtocol::NOTICE),
-            "capture_loss" => Ok(ZeekProtocol::CAPTURELOSS),
-            "reporter" => Ok(ZeekProtocol::REPORTER),
-            "sip" => Ok(ZeekProtocol::SIP),
-            _ => Err(Error::ZeekProtocolNotFound), // add error type instead of string
+            "conn" => ZeekProtocol::CONN,
+            "dns" => ZeekProtocol::DNS,
+            "http" => ZeekProtocol::HTTP,
+            "files" => ZeekProtocol::FILES,
+            "ftp" => ZeekProtocol::FTP,
+            "ssl" => ZeekProtocol::SSL,
+            "x509" => ZeekProtocol::X509,
+            "smtp" => ZeekProtocol::SMTP,
+            "snmp" => ZeekProtocol::SNMP,
+            "ssh" => ZeekProtocol::SSH,
+            "pe" => ZeekProtocol::PE,
+            "dhcp" => ZeekProtocol::DHCP,
+            "ntp" => ZeekProtocol::NTP,
+            "smb" => ZeekProtocol::SMB,
+            "irc" => ZeekProtocol::IRC,
+            "rdp" => ZeekProtocol::RDP,
+            "ldap" => ZeekProtocol::LDAP,
+            "quic" => ZeekProtocol::QUIC,
+            "traceroute" => ZeekProtocol::TRACEROUTE,
+            "tunnel" => ZeekProtocol::TUNNEL,
+            "dpd" => ZeekProtocol::DPD,
+            "known" => ZeekProtocol::KNOWN,
+            "software" => ZeekProtocol::SOFTWARE,
+            "weird" => ZeekProtocol::WEIRD,
+            "notice" => ZeekProtocol::NOTICE,
+            "capture_loss" => ZeekProtocol::CAPTURELOSS,
+            "reporter" => ZeekProtocol::REPORTER,
+            "sip" => ZeekProtocol::SIP,
+            _ => ZeekProtocol::NONE, // add error type instead of string
         }
     }
 }

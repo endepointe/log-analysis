@@ -13,14 +13,12 @@ use std::collections::btree_map::BTreeMap;
 // default log path: /usr/local/zeek or /opt/zeek or custom/path/
 // https://docs.zeek.org/en/master/quickstart.html#filesystem-walkthrough
 
-
-
 #[derive(Debug, PartialEq, Eq)]
 pub struct
 ZeekLogDirectory<'a>
 {
     path_prefix: Option<&'a str>,
-    pub dates: BTreeMap<String, ZeekLog>,
+    pub data: BTreeMap<ZeekProtocol, BTreeMap<String, Vec<String>>>,
 }
 impl<'a> ZeekLogDirectory<'a>
 {
@@ -38,14 +36,14 @@ impl<'a> ZeekLogDirectory<'a>
                 {
                     return Ok(ZeekLogDirectory {
                         path_prefix: opt_zeek.to_str(),
-                        dates: BTreeMap::new(),
+                        data: BTreeMap::new(),
                     })
                 } 
                 if usr_local_zeek.is_dir() 
                 {
                     return Ok(ZeekLogDirectory {
                         path_prefix: usr_local_zeek.to_str(),
-                        dates: BTreeMap::new(),
+                        data: BTreeMap::new(),
                     })
                 } 
                 return Err(Error::PathPrefixUnspecified)
@@ -56,7 +54,7 @@ impl<'a> ZeekLogDirectory<'a>
                 {
                     return Ok(ZeekLogDirectory {
                         path_prefix: path.to_str(),
-                        dates: BTreeMap::new(),
+                        data: BTreeMap::new(),
                     })
                 }
                 return Err(Error::PathNotFound)
@@ -95,7 +93,7 @@ impl<'a> ZeekLogDirectory<'a>
     }
 
     // requires a start date and one additional parameter.
-    pub fn search(&self, params: &ZeekSearchParams) -> Result<(), Error> 
+    pub fn search(&mut self, params: &ZeekSearchParams) -> Result<(), Error> 
     {
         let search : u8 = Self::check_params(self, params);
 
@@ -124,15 +122,48 @@ impl<'a> ZeekLogDirectory<'a>
         {
             true => {
                 dbg!(&path);
+                self.data = BTreeMap::new();
+                dbg!(&self.data);
+                let mut len = 0;
                 match search
                 {
+                    // expect log protos:
+                    // analyzer
+                    // capture-loss
+                    // conn
+                    // conn-summary
+                    // dns
+                    // dpd
+                    // files
+                    // http
+                    // notice
+                    // ntp
+                    // radius
+                    // sip
+                    // smtp
+                    // ssh
+                    // ssl
+                    // stats
+                    // telemetry
+                    // tunnel
+                    // weird
+
+                    // Unhandled None causing panic. Use zcat and handle None Option tonight.
+                    
                     1 => { // only start date provided. return general information about the logs.
                         for entry in std::fs::read_dir(&path).expect("error reading path") 
                         {
                             let log = entry.unwrap();
-                            let data = ZeekLog::read(log.path().as_path());
-                            //dbg!(&data);
-                            break;
+                            let p = log.path();
+                            let p = p.to_str().expect("The path to log file should exist.");
+                            let p = p.split('/').collect::<Vec<_>>();
+                            let p = p[p.len()-1].split('.').collect::<Vec<_>>();
+                            let proto = ZeekProtocol::read(p[0]);
+                            if !self.data.contains_key(&proto) 
+                            {
+                                self.data.insert(proto, BTreeMap::new());
+                            }
+                            let data = ZeekLog::read(log.path().as_path(), &self.data);
                         }
                     }
                     _ => {
@@ -140,6 +171,7 @@ impl<'a> ZeekLogDirectory<'a>
                         return Ok(())
                     }
                 }
+                //dbg!(&self.data);
                 return Ok(())
             }
             false => {

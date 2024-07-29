@@ -31,18 +31,22 @@ pub struct
 ZeekLog
 {
     header: ZeekLogHeader,
-    pub data: String, // make this a hashmap tomorrow
+    pub data: HashMap<String, Vec<String>>, // make this a hashmap tomorrow
 }
 impl ZeekLog
 {
-    pub fn read(p : &std::path::Path) -> Self
+    pub fn read(p : &std::path::Path, 
+                data: &BTreeMap<ZeekProtocol, BTreeMap<String, Vec<String>>>) -> Self
     {
+        dbg!(&p);
+        dbg!(&data);
         let output = std::process::Command::new("zcat")
             .arg(&p)
             .output()
             .expect("failed to zcat the log file");
         let log_header = output.stdout;
 
+        // todo: use self.header
         let mut separator : char = ' ';
         let mut set_separator = String::new();
         let mut empty_field = String::new();
@@ -52,7 +56,7 @@ impl ZeekLog
         let mut fields = Vec::<String>::new(); //todo: (field_type_tuple)
         let mut types = Vec::<String>::new();
 
-        let mut data = String::new();
+        let mut data = HashMap::new();
 
         match std::str::from_utf8(&log_header) 
         {
@@ -68,9 +72,10 @@ impl ZeekLog
                                                 // This file may have relevant
                                                 // information. Unsure how to
                                                 // handle it at this time.
+
                 let result = u8::from_str_radix(result.unwrap().trim(), 16)
-                    .expect("LOG_SEPARATER_CHAR: "); // add error to types. 
-                                                     // do better.
+                    .expect("Should have a separator character in the log file."); 
+
                 separator = char::from(result);
                 set_separator = line[1].split(separator).collect::<Vec<_>>()[1].to_string();
                 empty_field = line[2].split(separator).collect::<Vec<_>>()[1].to_string();
@@ -88,10 +93,19 @@ impl ZeekLog
                 {
                     types.push(s[i].to_string());
                 }
+                //let p = p.to_str().expect("The path to log file should exist.")
+                //    .split('/').collect::<Vec<_>>();
+                //let p = &p[p.len()-1].split('.').collect::<Vec<_>>();
+                //dbg!(&p);
+
+                for f in fields.iter() {
+                    //println!("{:?}", f);
+                    //&self.data.insert(f, Vec::<String>::new());
+                }
                 // Load the data 
                 for n in 8..line.len() {
                     let d = &line[n].split(separator).collect::<Vec<_>>();
-                    println!("{:?}", &d);
+                    //println!("{:?}", &d);
                     //println!("{:?}", &line[n]);
                 }
             }
@@ -100,30 +114,18 @@ impl ZeekLog
             }
         }
 
-        let header = ZeekLogHeader {
-            separator,
-            set_separator,
-            empty_field,
-            unset_field,
-            path,
-            open,
-            fields,
-            types,
-        };
-        
         ZeekLog {
-            header,
+            header: ZeekLogHeader {
+                separator,
+                set_separator,
+                empty_field,
+                unset_field,
+                path,
+                open,
+                fields,
+                types,
+            },
             data
         }
-
     }
-    //pub fn get_types(&self) -> &Vec<String>
-    //{
-    //    &self.types
-    //}
-    //pub fn get_fields(&self) -> &Vec<String>
-    //{
-    //    &self.fields
-    //}
 }
-
