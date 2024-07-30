@@ -5,12 +5,14 @@
 pub enum
 ErrorType
 {
+    Unspecified,
     PathNotFound,
     PathPrefixUnspecified,
     ZeekProtocolNotFound,
     SearchInvalidStartDate,
     SearchInvalidEndDate,
-    SearchInsufficientParams
+    SearchInsufficientParams,
+    NoLogHeader,
 }
 pub type Error = ErrorType;
 

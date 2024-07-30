@@ -1,3 +1,5 @@
+
+#[allow(unused_variables)]
 use crate::types::error::Error;
 use crate::zeek::zeek_log_proto::ZeekProtocol;
 use crate::zeek::zeek_log::ZeekLog;
@@ -18,7 +20,7 @@ pub struct
 ZeekLogDirectory<'a>
 {
     path_prefix: Option<&'a str>,
-    pub data: BTreeMap<ZeekProtocol, BTreeMap<String, Vec<String>>>,
+    pub data: BTreeMap<ZeekProtocol, HashMap<String, Vec<String>>>,
 }
 impl<'a> ZeekLogDirectory<'a>
 {
@@ -121,36 +123,15 @@ impl<'a> ZeekLogDirectory<'a>
         match path.is_dir()
         {
             true => {
-                dbg!(&path);
-                self.data = BTreeMap::new();
-                dbg!(&self.data);
+                //dbg!(&path);
+                //self.data = BTreeMap::new();
+                //dbg!(&self.data);
                 let mut len = 0;
                 match search
                 {
-                    // expect log protos:
-                    // analyzer
-                    // capture-loss
-                    // conn
-                    // conn-summary
-                    // dns
-                    // dpd
-                    // files
-                    // http
-                    // notice
-                    // ntp
-                    // radius
-                    // sip
-                    // smtp
-                    // ssh
-                    // ssl
-                    // stats
-                    // telemetry
-                    // tunnel
-                    // weird
-
-                    // Unhandled None causing panic. Use zcat and handle None Option tonight.
-                    
-                    1 => { // only start date provided. return general information about the logs.
+                    1 => { 
+                        dbg!(&self.data);
+                        // only start date provided. return general information about the logs.
                         for entry in std::fs::read_dir(&path).expect("error reading path") 
                         {
                             let log = entry.unwrap();
@@ -159,11 +140,11 @@ impl<'a> ZeekLogDirectory<'a>
                             let p = p.split('/').collect::<Vec<_>>();
                             let p = p[p.len()-1].split('.').collect::<Vec<_>>();
                             let proto = ZeekProtocol::read(p[0]);
-                            if !self.data.contains_key(&proto) 
+                            if !self.data.contains_key(&proto) &&  !(proto == ZeekProtocol::NONE)
                             {
-                                self.data.insert(proto, BTreeMap::new());
+                                self.data.insert(proto, HashMap::<String, Vec<String>>::new());
                             }
-                            let data = ZeekLog::read(log.path().as_path(), &self.data);
+                            let _ = ZeekLog::read(log.path().as_path(), &mut self.data);
                         }
                     }
                     _ => {
@@ -171,7 +152,7 @@ impl<'a> ZeekLogDirectory<'a>
                         return Ok(())
                     }
                 }
-                //dbg!(&self.data);
+                dbg!(&self.data);
                 return Ok(())
             }
             false => {
