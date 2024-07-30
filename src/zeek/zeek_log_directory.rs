@@ -1,6 +1,7 @@
 
 #[allow(unused_variables)]
 use crate::types::error::Error;
+use crate::types::helpers::print_type_of;
 use crate::zeek::zeek_log_proto::ZeekProtocol;
 use crate::zeek::zeek_log::ZeekLog;
 use crate::zeek::zeek_search_params::ZeekSearchParams;
@@ -12,15 +13,15 @@ use std::path::Path;
 use std::collections::HashMap;
 use std::collections::btree_map::BTreeMap;
 
-// default log path: /usr/local/zeek or /opt/zeek or custom/path/
-// https://docs.zeek.org/en/master/quickstart.html#filesystem-walkthrough
-
 #[derive(Debug, PartialEq, Eq)]
 pub struct
 ZeekLogDirectory<'a>
 {
+    // default log path: /usr/local/zeek or /opt/zeek or custom/path/
+    // https://docs.zeek.org/en/master/quickstart.html#filesystem-walkthrough
     path_prefix: Option<&'a str>,
-    pub data: BTreeMap<ZeekProtocol, HashMap<String, Vec<String>>>,
+    //pub data: BTreeMap<ZeekProtocol, HashMap<String, HashMap<String, Vec<String>>>>,
+    pub data: BTreeMap<ZeekProtocol, HashMap<String, Vec<Vec<String>>>>,
 }
 impl<'a> ZeekLogDirectory<'a>
 {
@@ -75,14 +76,10 @@ impl<'a> ZeekLogDirectory<'a>
 
     fn check_params(&self, params: &ZeekSearchParams) -> u8 // 0001, 0101, etc.
     {
-        // There must be a better way to check what params have been provided...
         // This current approach will result in pow(n,2) match arms, where n is the 
         // number of params in the struct.
-        //
         // At the least, there should be at least one param.
-        //
         // Returns a tuple that specifies what searches to perform.
-        //
         match (&params.start_date, &params.end_date, &params.log_type, &params.ip) 
         {
             (None, None, None, None) => return 0,
@@ -94,7 +91,6 @@ impl<'a> ZeekLogDirectory<'a>
         }
     }
 
-    // requires a start date and one additional parameter.
     pub fn search(&mut self, params: &ZeekSearchParams) -> Result<(), Error> 
     {
         let search : u8 = Self::check_params(self, params);
@@ -123,15 +119,12 @@ impl<'a> ZeekLogDirectory<'a>
         match path.is_dir()
         {
             true => {
-                //dbg!(&path);
-                //self.data = BTreeMap::new();
-                //dbg!(&self.data);
                 let mut len = 0;
                 match search
                 {
                     1 => { 
-                        dbg!(&self.data);
-                        // only start date provided. return general information about the logs.
+                        // This condition handles when only start date is provided. 
+                        // Return all information about the logs.
                         for entry in std::fs::read_dir(&path).expect("error reading path") 
                         {
                             let log = entry.unwrap();
@@ -139,12 +132,43 @@ impl<'a> ZeekLogDirectory<'a>
                             let p = p.to_str().expect("The path to log file should exist.");
                             let p = p.split('/').collect::<Vec<_>>();
                             let p = p[p.len()-1].split('.').collect::<Vec<_>>();
+
+                            //////////////////////////////////////////////////////
+                            // NOTE: p[0] = proto, p[1] = time, p[2..] = filetype
+                            //////////////////////////////////////////////////////
                             let proto = ZeekProtocol::read(p[0]);
-                            if !self.data.contains_key(&proto) &&  !(proto == ZeekProtocol::NONE)
+
+                            if !self.data.contains_key(&proto) && !(proto == ZeekProtocol::NONE)
                             {
-                                self.data.insert(proto, HashMap::<String, Vec<String>>::new());
+                                // To handle post processing easier, look to convert the inner
+                                // vector to a hashmap and return it. 
+                                // This will have to be done within ZeekLog::read(...)
+                                //let mut hp = HashMap::<String, HashMap<String, Vec<String>>>::new();
+
+                                // For now, pass in a vector and use index == 0 as the 'key'.
+                                let mut hp = HashMap::<String, Vec<Vec<String>>>::new();
+
+                                hp.insert(p[1].to_string(), Vec::<Vec::<String>>::new());
+                                self.data.insert(proto.clone(), hp);
                             }
-                            let _ = ZeekLog::read(log.path().as_path(), &mut self.data);
+
+                            // Create time range (e.g. 00-01) and use as keys to BTreeMap.
+                            if let Some(value) = self.data.get_mut(&proto) 
+                            {
+                                value.insert(p[1].to_string(), Vec::<Vec::<String>>::new());
+                            }
+
+                            // Only pass the vector corresponding to the time.
+                            if let Some(t) = self.data.get_mut(&proto) 
+                            {
+                                if let Some(g) = t.get_mut(&p[1].to_string())
+                                {
+                                    // thread here?
+                                    let _ = ZeekLog::read(log.path().as_path(), 
+                                                          p[1].to_string(), 
+                                                          g);
+                                }
+                            }
                         }
                     }
                     _ => {
@@ -152,7 +176,13 @@ impl<'a> ZeekLogDirectory<'a>
                         return Ok(())
                     }
                 }
-                dbg!(&self.data);
+                if let Some(s) = &self.data.get(&ZeekProtocol::CONN)
+                {
+                    if let Some(d) = &s.get("00:00:00-01:00:00") 
+                    {
+                        dbg!(&d[2][0..10]);
+                    }
+                }
                 return Ok(())
             }
             false => {

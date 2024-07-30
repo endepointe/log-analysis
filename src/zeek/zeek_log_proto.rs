@@ -1,6 +1,6 @@
 use crate::types::error::Error;
 
-#[derive(Debug, PartialEq, Eq, Ord, PartialOrd)]
+#[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd)]
 pub enum 
 ZeekProtocol
 {

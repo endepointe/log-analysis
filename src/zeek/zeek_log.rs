@@ -1,4 +1,5 @@
 use crate::types::error::Error;
+use crate::types::helpers::print_type_of;
 use crate::zeek::zeek_log_proto::ZeekProtocol;
 
 use std::str::FromStr;
@@ -8,12 +9,6 @@ use std::path::Path;
 use std::collections::HashMap;
 use std::collections::btree_map::BTreeMap;
 
-// default log path: /usr/local/zeek or /opt/zeek or custom/path/
-// https://docs.zeek.org/en/master/quickstart.html#filesystem-walkthrough
-fn print_type_of<T>(_: &T) {
-    println!("Type: {}", std::any::type_name::<T>());
-}
-
 #[derive(Debug,Clone,PartialEq,Eq)]
 struct 
 ZeekLogHeader
@@ -22,10 +17,8 @@ ZeekLogHeader
     pub set_separator: String,
     pub empty_field: String,
     pub unset_field: String,
-    pub path: String, // could turn this into a list to store multiple dates
+    pub path: String, 
     pub open: String,
-    // field and types may be better used as a tuple.
-    // todo: (field_type_tuple)
     pub fields: Vec<String>,
     //pub types: Vec<String>,
 }
@@ -38,29 +31,26 @@ ZeekLog
 }
 impl ZeekLog
 {
-    pub fn read(p : &std::path::Path, 
-                data: &mut BTreeMap<ZeekProtocol, HashMap<String, Vec<String>>>) 
+    pub fn read(p : &std::path::Path, time: String,
+                data: &mut Vec::<Vec::<String>>)
+                //data: &mut HashMap::<String, Vec::<String>>) // See notes in
+                //zeek_log_directory.rs (line 150ish)
         -> Result<(), Error>
     {
-        //dbg!(&p);
-        dbg!(&data);
         let output = std::process::Command::new("zcat")
             .arg(&p)
             .output()
             .expect("failed to zcat the log file");
         let log_header = output.stdout;
 
-        // todo: use self.header
         let mut separator : char = ' ';
         let mut set_separator = String::new();
         let mut empty_field = String::new();
         let mut unset_field = String::new();
         let mut path = String::new();
         let mut open = String::new();
-        let mut fields = Vec::<String>::new(); //todo: (field_type_tuple)
-        //let mut types = Vec::<String>::new();
-
-        //let mut data = HashMap::new();
+        let mut fields = Vec::<String>::new(); 
+        //let mut types = Vec::<String>::new(); // match types with a map? 
 
         match std::str::from_utf8(&log_header) 
         {
@@ -70,8 +60,6 @@ impl ZeekLog
                 let result = line[0].split(' ')
                                 .collect::<Vec<&str>>()[1]
                                 .strip_prefix("\\x");
-
-                // The return type needs to be a result to handle the None condition.
 
                 // File does not have header info.
                 // This should not return an error due to the calling function's 
@@ -92,43 +80,36 @@ impl ZeekLog
                 open = line[5].split(separator).collect::<Vec<_>>()[1].to_string();
 
                 let s = line[6].split(separator).collect::<Vec<_>>();
+
                 for i in 1..s.len() 
                 {
                     fields.push(s[i].to_string());
                 }
-
-
-                if let Some(val) = data.get_mut(&ZeekProtocol::read(&path)) 
+                for f in fields.iter()
                 {
-                    // Load the data 
-                    for n in 8..line.len() 
-                    {
-                        let row = &line[n].split(separator).collect::<Vec<_>>();
-                        for m in 0..row.len() 
-                        {
-                            println!("field: {:?}, value: {:?}", &fields[m], &row[m]);   
-                            let mut res = val.values_mut();
-                            res.map(|r| r.insert(fields[m].to_string(), row[m].to_string()));
-                        }
-                    }
-                    //for f in fields.iter() {
-                    //    val.insert(f.to_string(), Vec::new());
-                    //}
+                    //data.insert(f.to_string(), Vec::<String>::new());
+                    let mut v = Vec::<String>::new();
+                    v.push(f.to_string());
+                    data.push(v);
                 }
-                //let s = line[7].split(separator).collect::<Vec<_>>();
-                //for i in 1..s.len() 
-                //{
-                //    types.push(s[i].to_string());
-                //}
-                //let p = p.to_str().expect("The path to log file should exist.")
-                //    .split('/').collect::<Vec<_>>();
-                //let p = &p[p.len()-1].split('.').collect::<Vec<_>>();
+
+                // Load the data 
+                for n in 8..line.len() // line.len() - 2 == #close\tdate which is not used.
+                {
+                    let items = line[n].split(separator).collect::<Vec<_>>();
+                    if items[0] == "#close" {break;}
+                    for item in 0..items.len() - 1
+                    {
+                        data[item].push(items[item].to_string());
+                    }
+                }
             }
             Err(e) => {
                 return  Err(Error::Unspecified) 
             }
         }
         Ok(())
+        // Determine if it is useful to return the header.
         //Ok(ZeekLog {
         //    header: ZeekLogHeader {
         //        separator,
