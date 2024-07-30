@@ -44,11 +44,11 @@ impl ZeekLog
         let log_header = output.stdout;
 
         let mut separator : char = ' ';
-        let mut set_separator = String::new();
-        let mut empty_field = String::new();
-        let mut unset_field = String::new();
-        let mut path = String::new();
-        let mut open = String::new();
+        //let mut set_separator = String::new();
+        //let mut empty_field = String::new();
+        //let mut unset_field = String::new();
+        //let mut path = String::new();
+        //let mut open = String::new();
         let mut fields = Vec::<String>::new(); 
         //let mut types = Vec::<String>::new(); // match types with a map? 
 
@@ -73,11 +73,11 @@ impl ZeekLog
                     .expect("Should have a separator character in the log file."); 
 
                 separator = char::from(result);
-                set_separator = line[1].split(separator).collect::<Vec<_>>()[1].to_string();
-                empty_field = line[2].split(separator).collect::<Vec<_>>()[1].to_string();
-                unset_field = line[3].split(separator).collect::<Vec<_>>()[1].to_string();
-                path = line[4].split(separator).collect::<Vec<_>>()[1].to_string();
-                open = line[5].split(separator).collect::<Vec<_>>()[1].to_string();
+                //set_separator = line[1].split(separator).collect::<Vec<_>>()[1].to_string();
+                //empty_field = line[2].split(separator).collect::<Vec<_>>()[1].to_string();
+                //unset_field = line[3].split(separator).collect::<Vec<_>>()[1].to_string();
+                //path = line[4].split(separator).collect::<Vec<_>>()[1].to_string();
+                //open = line[5].split(separator).collect::<Vec<_>>()[1].to_string();
 
                 let s = line[6].split(separator).collect::<Vec<_>>();
 
