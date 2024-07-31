@@ -12,7 +12,7 @@ use std::io::{self, Read};
 use std::path::Path;
 use std::collections::HashMap;
 use std::collections::btree_map::BTreeMap;
-
+type LogTree = BTreeMap<ZeekProtocol, HashMap<String, HashMap<String, Vec<String>>>>;
 #[derive(Debug, PartialEq, Eq)]
 pub struct
 ZeekLogDirectory<'a>
@@ -20,8 +20,8 @@ ZeekLogDirectory<'a>
     // default log path: /usr/local/zeek or /opt/zeek or custom/path/
     // https://docs.zeek.org/en/master/quickstart.html#filesystem-walkthrough
     path_prefix: Option<&'a str>,
-    //pub data: BTreeMap<ZeekProtocol, HashMap<String, HashMap<String, Vec<String>>>>,
-    pub data: BTreeMap<ZeekProtocol, HashMap<String, Vec<Vec<String>>>>,
+    pub data: LogTree,//BTreeMap<ZeekProtocol, HashMap<String, HashMap<String, Vec<String>>>>,
+    //pub data: BTreeMap<ZeekProtocol, HashMap<String, Vec<Vec<String>>>>,
 }
 impl<'a> ZeekLogDirectory<'a>
 {
@@ -91,7 +91,7 @@ impl<'a> ZeekLogDirectory<'a>
         }
     }
 
-    pub fn search(&mut self, params: &ZeekSearchParams) -> Result<(), Error> 
+    pub fn search(&mut self, params: &ZeekSearchParams) -> Result<LogTree, Error> 
     {
         let search : u8 = Self::check_params(self, params);
 
@@ -140,22 +140,17 @@ impl<'a> ZeekLogDirectory<'a>
 
                             if !self.data.contains_key(&proto) && !(proto == ZeekProtocol::NONE)
                             {
-                                // To handle post processing easier, look to convert the inner
+                                // To handle post processing easier, convert the inner
                                 // vector to a hashmap and return it. 
-                                // This will have to be done within ZeekLog::read(...)
-                                //let mut hp = HashMap::<String, HashMap<String, Vec<String>>>::new();
-
-                                // For now, pass in a vector and use index == 0 as the 'key'.
-                                let mut hp = HashMap::<String, Vec<Vec<String>>>::new();
-
-                                hp.insert(p[1].to_string(), Vec::<Vec::<String>>::new());
+                                let mut hp = HashMap::<String, HashMap<String, Vec<String>>>::new();
+                                hp.insert(p[1].to_string(), HashMap::<String, Vec::<String>>::new());
                                 self.data.insert(proto.clone(), hp);
                             }
 
                             // Create time range (e.g. 00-01) and use as keys to BTreeMap.
                             if let Some(value) = self.data.get_mut(&proto) 
                             {
-                                value.insert(p[1].to_string(), Vec::<Vec::<String>>::new());
+                                value.insert(p[1].to_string(), HashMap::<String, Vec::<String>>::new());
                             }
 
                             // Only pass the vector corresponding to the time.
@@ -164,32 +159,22 @@ impl<'a> ZeekLogDirectory<'a>
                                 if let Some(g) = t.get_mut(&p[1].to_string())
                                 {
                                     // thread here?
-                                    let _ = ZeekLog::read(log.path().as_path(), 
-                                                          p[1].to_string(), 
-                                                          g);
+                                    let _ = ZeekLog::read(log.path().as_path(), g);
                                 }
                             }
                         }
                     }
                     _ => {
                         dbg!(search);
-                        return Ok(())
+                        return Ok(self.data.clone())
                     }
                 }
-                if let Some(s) = &self.data.get(&ZeekProtocol::CONN)
-                {
-                    if let Some(d) = &s.get("00:00:00-01:00:00") 
-                    {
-                        dbg!(&d[2][0..10]);
-                    }
-                }
-                return Ok(())
+                return Ok(self.data.clone())
             }
             false => {
                 return Err(Error::SearchInvalidStartDate)
             }
         }
-        Ok(())
     }
 }
 

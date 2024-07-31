@@ -41,21 +41,43 @@ fn test_create_log_directory()
 #[test]
 fn test_search()
 {
-    let mut search = ZeekSearchParams::new();
+    let mut params = ZeekSearchParams::new();
 
-    let search_result = search.set_start_date(Path::new("2024-07"));
-    assert_eq!(search_result, Err(Error::SearchInvalidStartDate));
+    let params_result = params.set_start_date(Path::new("2024-07"));
+    assert_eq!(params_result, Err(Error::SearchInvalidStartDate));
 
-    let search_result = search.set_start_date(Path::new("2024-07-02"));
-    assert_ne!(search_result, Err(Error::SearchInvalidStartDate));
-    assert!(search_result.is_ok());
+    let params_result = params.set_start_date(Path::new("2024-07-02"));
+    assert_ne!(params_result, Err(Error::SearchInvalidStartDate));
+    assert!(params_result.is_ok());
 
-    let mut s = ZeekLogDirectory::new(Some(Path::new("zeek-test-logs")));
-    match &mut s 
+    let mut loc = ZeekLogDirectory::new(Some(Path::new("zeek-test-logs")));
+    match &mut loc 
     {
         Ok(dir) => {
-            let res = dir.search(&search);
+            let res = dir.search(&params);
             assert!(res.is_ok());
+            let res = res.unwrap();
+            if let Some(s) = &res.get(&ZeekProtocol::CONN)
+            {
+                if let Some(d) = &s.get("00:00:00-01:00:00") 
+                {
+                    for key in d.keys()  
+                    {
+                        dbg!(&key);
+                    }
+                }
+            }
+            println!("");
+            if let Some(s) = &res.get(&ZeekProtocol::SSH)
+            {
+                if let Some(d) = &s.get("00:00:00-01:00:00") 
+                {
+                    for key in d.keys()  
+                    {
+                        dbg!(&key);
+                    }
+                }
+            }
         }
         Err(_) => {
             dbg!(todo!());

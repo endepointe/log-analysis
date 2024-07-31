@@ -26,15 +26,12 @@ ZeekLogHeader
 pub struct 
 ZeekLog
 {
-    header: ZeekLogHeader,
+    //header: ZeekLogHeader,
     //pub data: HashMap<String, Vec<String>>, // make this a hashmap tomorrow
 }
 impl ZeekLog
 {
-    pub fn read(p : &std::path::Path, time: String,
-                data: &mut Vec::<Vec::<String>>)
-                //data: &mut HashMap::<String, Vec::<String>>) // See notes in
-                //zeek_log_directory.rs (line 150ish)
+    pub fn read(p : &std::path::Path, map: &mut HashMap::<String, Vec::<String>>)
         -> Result<(), Error>
     {
         let output = std::process::Command::new("zcat")
@@ -44,13 +41,7 @@ impl ZeekLog
         let log_header = output.stdout;
 
         let mut separator : char = ' ';
-        //let mut set_separator = String::new();
-        //let mut empty_field = String::new();
-        //let mut unset_field = String::new();
-        //let mut path = String::new();
-        //let mut open = String::new();
         let mut fields = Vec::<String>::new(); 
-        //let mut types = Vec::<String>::new(); // match types with a map? 
 
         match std::str::from_utf8(&log_header) 
         {
@@ -73,11 +64,6 @@ impl ZeekLog
                     .expect("Should have a separator character in the log file."); 
 
                 separator = char::from(result);
-                //set_separator = line[1].split(separator).collect::<Vec<_>>()[1].to_string();
-                //empty_field = line[2].split(separator).collect::<Vec<_>>()[1].to_string();
-                //unset_field = line[3].split(separator).collect::<Vec<_>>()[1].to_string();
-                //path = line[4].split(separator).collect::<Vec<_>>()[1].to_string();
-                //open = line[5].split(separator).collect::<Vec<_>>()[1].to_string();
 
                 let s = line[6].split(separator).collect::<Vec<_>>();
 
@@ -85,13 +71,16 @@ impl ZeekLog
                 {
                     fields.push(s[i].to_string());
                 }
+
+                let mut data = Vec::<String>::new();
                 for f in fields.iter()
                 {
-                    //data.insert(f.to_string(), Vec::<String>::new());
-                    let mut v = Vec::<String>::new();
-                    v.push(f.to_string());
-                    data.push(v);
+                    map.insert(f.to_string(), Vec::<String>::new());
+                    data.push(f.to_string());
                 }
+
+                // Should never fail.
+                assert_eq!(data.len(), fields.len());
 
                 // Load the data 
                 for n in 8..line.len() // line.len() - 2 == #close\tdate which is not used.
@@ -100,7 +89,10 @@ impl ZeekLog
                     if items[0] == "#close" {break;}
                     for item in 0..items.len() - 1
                     {
-                        data[item].push(items[item].to_string());
+                        if let Some(m) = map.get_mut(&data[item])
+                        {
+                            m.push(items[item].to_string());
+                        }
                     }
                 }
             }
@@ -109,19 +101,5 @@ impl ZeekLog
             }
         }
         Ok(())
-        // Determine if it is useful to return the header.
-        //Ok(ZeekLog {
-        //    header: ZeekLogHeader {
-        //        separator,
-        //        set_separator,
-        //        empty_field,
-        //        unset_field,
-        //        path,
-        //        open,
-        //        fields,
-        //        //types,
-        //    },
-        //    //data
-        //})
     }
 }
