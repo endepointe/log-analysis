@@ -81,7 +81,7 @@ fn test_search()
             }
         }
         Err(_) => {
-            dbg!(todo!());
+            dbg!("complete this error condition");
         }
     }
 

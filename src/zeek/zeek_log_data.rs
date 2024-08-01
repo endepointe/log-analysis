@@ -1,14 +1,6 @@
 use crate::types::error::Error;
-use crate::types::helpers::print_type_of;
-use crate::zeek::zeek_log_proto::ZeekProtocol;
-use crate::zeek::zeek_log_header::ZeekLogHeader;
 
-use std::str::FromStr;
-use std::fs::{self, File};
-use std::io::{self, Read};
-use std::path::Path;
 use std::collections::HashMap;
-use std::collections::btree_map::BTreeMap;
 
 #[derive(Debug,Clone,PartialEq,Eq)]
 pub struct 
@@ -26,7 +18,7 @@ impl ZeekLogData
             .expect("failed to zcat the log file");
         let log_header = output.stdout;
 
-        let mut separator : char = ' ';
+        let mut _separator : char = ' ';
         let mut fields = Vec::<String>::new(); 
 
         match std::str::from_utf8(&log_header) 
@@ -49,9 +41,9 @@ impl ZeekLogData
                 let result = u8::from_str_radix(result.unwrap().trim(), 16)
                     .expect("Should have a separator character in the log file."); 
 
-                separator = char::from(result);
+                _separator = char::from(result);
 
-                let s = line[6].split(separator).collect::<Vec<_>>();
+                let s = line[6].split(_separator).collect::<Vec<_>>();
 
                 for i in 1..s.len() 
                 {
@@ -71,7 +63,7 @@ impl ZeekLogData
                 // Load the data 
                 for n in 8..line.len() // line.len() - 2 == #close\tdate which is not used.
                 {
-                    let items = line[n].split(separator).collect::<Vec<_>>();
+                    let items = line[n].split(_separator).collect::<Vec<_>>();
                     if items[0] == "#close" {break;}
                     for item in 0..items.len() - 1
                     {
@@ -82,7 +74,7 @@ impl ZeekLogData
                     }
                 }
             }
-            Err(e) => {
+            Err(_) => {
                 return  Err(Error::Unspecified) 
             }
         }

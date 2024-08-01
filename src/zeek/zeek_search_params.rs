@@ -1,13 +1,8 @@
 use crate::types::error::Error;
 use crate::zeek::zeek_log_proto::ZeekProtocol;
-use crate::zeek::zeek_log_directory::ZeekLogDirectory;
 
 use std::str::FromStr;
-use std::fs::{self, File};
-use std::io::{self, Read};
 use std::path::Path;
-use std::collections::HashMap;
-use std::collections::btree_map::BTreeMap;
 
 // default log path: /usr/local/zeek or /opt/zeek or custom/path/
 // https://docs.zeek.org/en/master/quickstart.html#filesystem-walkthrough
@@ -67,7 +62,7 @@ impl<'a> ZeekSearchParams<'a>
             for i in 0..v.len() 
             {
                 let number = u16::from_str(v[i]);
-                if let Err(e) = number 
+                if let Err(_) = number 
                 {
                     return false
                 }

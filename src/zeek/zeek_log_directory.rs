@@ -1,16 +1,10 @@
-
-#[allow(unused_variables)]
 use crate::types::error::Error;
-use crate::types::helpers::print_type_of;
 use crate::types::types::LogTree;
 use crate::zeek::zeek_log_proto::ZeekProtocol;
 
 use crate::zeek::zeek_log_data::ZeekLogData;
 use crate::zeek::zeek_search_params::ZeekSearchParams;
 
-use std::str::FromStr;
-use std::fs::{self, File};
-use std::io::{self, Read};
 use std::path::Path;
 use std::collections::HashMap;
 use std::collections::btree_map::BTreeMap;
@@ -71,7 +65,7 @@ impl<'a> ZeekLogDirectory<'a>
     {
         match &self.path_prefix 
         {
-            Some(path) => { return true }
+            Some(_) => { return true }
             None => { return false}
         }
     }
@@ -85,10 +79,10 @@ impl<'a> ZeekLogDirectory<'a>
         match (&params.start_date, &params.end_date, &params.log_type, &params.ip) 
         {
             (None, None, None, None) => return 0,
-            (Some(start), None, None, None) => return 1,
-            (Some(start), Some(end), _log_type, _ip) => return 2,
-            (Some(start), _end , Some(log_type), _ip) => return 3,
-            (Some(start), _end , _log_type, Some(ip)) => return 4,
+            (Some(_start), None, None, None) => return 1,
+            (Some(_start), Some(_end), _log_type, _ip) => return 2,
+            (Some(_start), _end , Some(_log_type), _ip) => return 3,
+            (Some(_start), _end , _log_type, Some(_ip)) => return 4,
             _ => return 0,
         }
     }
