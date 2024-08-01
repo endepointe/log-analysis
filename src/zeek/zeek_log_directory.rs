@@ -5,7 +5,7 @@ use crate::types::helpers::print_type_of;
 use crate::types::types::LogTree;
 use crate::zeek::zeek_log_proto::ZeekProtocol;
 
-use crate::zeek::zeek_log::ZeekLog;
+use crate::zeek::zeek_log_data::ZeekLogData;
 use crate::zeek::zeek_search_params::ZeekSearchParams;
 
 use std::str::FromStr;
@@ -160,7 +160,7 @@ impl<'a> ZeekLogDirectory<'a>
                                 if let Some(g) = t.get_mut(&p[1].to_string())
                                 {
                                     // thread here?
-                                    let _ = ZeekLog::read(log.path().as_path(), g);
+                                    let _ = ZeekLogData::read(log.path().as_path(), g);
                                 }
                             }
                         }

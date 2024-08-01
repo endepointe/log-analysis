@@ -1,6 +1,7 @@
 use crate::types::error::Error;
 use crate::types::helpers::print_type_of;
 use crate::zeek::zeek_log_proto::ZeekProtocol;
+use crate::zeek::zeek_log_header::ZeekLogHeader;
 
 use std::str::FromStr;
 use std::fs::{self, File};
@@ -10,26 +11,11 @@ use std::collections::HashMap;
 use std::collections::btree_map::BTreeMap;
 
 #[derive(Debug,Clone,PartialEq,Eq)]
-struct 
-ZeekLogHeader
-{
-    pub separator: char,
-    pub set_separator: String,
-    pub empty_field: String,
-    pub unset_field: String,
-    pub path: String, 
-    pub open: String,
-    pub fields: Vec<String>,
-    //pub types: Vec<String>,
-}
-#[derive(Debug,Clone,PartialEq,Eq)]
 pub struct 
-ZeekLog
-{
-    //header: ZeekLogHeader,
-    //pub data: HashMap<String, Vec<String>>, // make this a hashmap tomorrow
-}
-impl ZeekLog
+ZeekLogData
+{}
+
+impl ZeekLogData
 {
     pub fn read(p : &std::path::Path, map: &mut HashMap::<String, Vec::<String>>)
         -> Result<(), Error>
