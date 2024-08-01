@@ -2,7 +2,9 @@
 #[allow(unused_variables)]
 use crate::types::error::Error;
 use crate::types::helpers::print_type_of;
+use crate::types::types::LogTree;
 use crate::zeek::zeek_log_proto::ZeekProtocol;
+
 use crate::zeek::zeek_log::ZeekLog;
 use crate::zeek::zeek_search_params::ZeekSearchParams;
 
@@ -12,7 +14,8 @@ use std::io::{self, Read};
 use std::path::Path;
 use std::collections::HashMap;
 use std::collections::btree_map::BTreeMap;
-type LogTree = BTreeMap<ZeekProtocol, HashMap<String, HashMap<String, Vec<String>>>>;
+
+
 #[derive(Debug, PartialEq, Eq)]
 pub struct
 ZeekLogDirectory<'a>
@@ -20,8 +23,7 @@ ZeekLogDirectory<'a>
     // default log path: /usr/local/zeek or /opt/zeek or custom/path/
     // https://docs.zeek.org/en/master/quickstart.html#filesystem-walkthrough
     path_prefix: Option<&'a str>,
-    pub data: LogTree,//BTreeMap<ZeekProtocol, HashMap<String, HashMap<String, Vec<String>>>>,
-    //pub data: BTreeMap<ZeekProtocol, HashMap<String, Vec<Vec<String>>>>,
+    pub data: LogTree,
 }
 impl<'a> ZeekLogDirectory<'a>
 {
@@ -119,7 +121,6 @@ impl<'a> ZeekLogDirectory<'a>
         match path.is_dir()
         {
             true => {
-                let mut len = 0;
                 match search
                 {
                     1 => { 

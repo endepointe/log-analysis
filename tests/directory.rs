@@ -70,6 +70,7 @@ fn test_search()
             println!("");
             if let Some(s) = &res.get(&ZeekProtocol::SSH)
             {
+                println!("{}", std::mem::size_of_val(&s));
                 if let Some(d) = &s.get("00:00:00-01:00:00") 
                 {
                     for key in d.keys()  

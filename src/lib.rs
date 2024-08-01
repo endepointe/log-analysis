@@ -2,6 +2,7 @@ pub mod types;
 pub mod zeek;
 
 use crate::types::error::Error;
+use crate::types::types::LogTree;
 use crate::zeek::zeek_log_proto::ZeekProtocol;
 use crate::zeek::zeek_log::ZeekLog;
 use crate::zeek::zeek_log_directory::ZeekLogDirectory;

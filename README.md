@@ -25,6 +25,15 @@ todo
 
 - `ip2location`: Enables IP geolocation using the IP2Location database.
 
+## Testing
+
+### Performance
+```bash
+# Requires flamegraph and perf
+# Repo: https://github.com/flamegraph-rs/flamegraph
+cargo flamegraph --test <location>
+```
+
 ## Contributing
 
 Contributions are welcome! Please submit pull requests or open issues to improve the library.
