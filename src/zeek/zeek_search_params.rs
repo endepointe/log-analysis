@@ -20,7 +20,8 @@ impl<'a> ZeekSearchParams<'a>
 {
     pub fn new() -> Self 
     {
-        ZeekSearchParams {
+        // maybe add init values for this method instead of defaulting to None.
+        ZeekSearchParms {
             start_date: None,
             end_date: None,
             log_type: None,
@@ -37,6 +38,20 @@ impl<'a> ZeekSearchParams<'a>
             }
             false => {
                 Err(Error::SearchInvalidStartDate)
+            }
+        }
+    }
+
+    pub fn set_end_date(&mut self, end: &'a Path) -> Result<(), Error>
+    {
+        match Self::check_date_format(end)
+        {
+            true => {
+                self.end_date = Some(end.to_str().unwrap()); 
+                Ok(())
+            }
+            false => {
+                Err(Error::SearchInvalidEndDate)
             }
         }
     }
