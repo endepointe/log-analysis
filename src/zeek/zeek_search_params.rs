@@ -18,7 +18,7 @@ ZeekSearchParams<'a>
 }
 impl<'a> ZeekSearchParams<'a>
 {
-    pub fn new() -> Self 
+    pub fn new() -> Option<Self>
     {
         // maybe add init values for this method instead of defaulting to None.
         ZeekSearchParms {
