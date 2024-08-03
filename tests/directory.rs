@@ -1,4 +1,3 @@
-
 use log_analysis::{
     zeek::zeek_search_params::ZeekSearchParams, 
     zeek::zeek_log_directory::ZeekLogDirectory,
@@ -6,6 +5,7 @@ use log_analysis::{
     types::error::Error,
 };
 use std::path::Path;
+use std::io::Write;
 
 #[test]
 fn test_env_vars()
@@ -29,6 +29,7 @@ fn test_create_log_directory()
 
     // should look back to zeek-test-logs
     let s = ZeekLogDirectory::new(Some(Path::new("zeek-test-logs/2024-07-03")));
+
     assert!(s.is_ok());
 
     let s = ZeekLogDirectory::new(Some(Path::new("zeek-test-logs/2024-0a-02")));
@@ -46,7 +47,19 @@ fn test_search()
     let params_result = params.set_start_date(Path::new("2024-07"));
     assert_eq!(params_result, Err(Error::SearchInvalidStartDate));
 
-    let params_result = params.set_start_date(Path::new("2024-07-02"));
+    let mut dir_path = String::new();
+    print!("Enter the path to log start date: ");
+    let _ = std::io::stdout().flush();
+    if let Ok(res) = std::io::stdin().read_line(&mut dir_path) 
+    {
+        print!("you entered: ");
+        let _ = std::io::stdout().flush();
+        dbg!(res); 
+        dbg!(dir_path.trim_end());
+    }
+
+    let params_result = params.set_start_date(Path::new(dir_path.trim_end()));
+
     assert_ne!(params_result, Err(Error::SearchInvalidStartDate));
     assert!(params_result.is_ok());
 
