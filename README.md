@@ -1,5 +1,6 @@
 # log-analysis (not complete)
 
+
 Rust library designed to read and parse Zeek logs. It includes an optional `ip2location` feature for IP geolocation.
 
 ## Features
@@ -12,6 +13,9 @@ Rust library designed to read and parse Zeek logs. It includes an optional `ip2l
 todo
 
 ## Usage
+```rust
+let log = "todo"
+```
 
 ### Basic Usage
 
