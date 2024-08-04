@@ -14,7 +14,7 @@ todo
 
 ## Usage
 ```rust
-let log = "todo"
+let log = ""
 ```
 
 ### Basic Usage
