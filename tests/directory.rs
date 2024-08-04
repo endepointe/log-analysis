@@ -97,56 +97,6 @@ fn test_search()
             dbg!("complete this error condition");
         }
     }
-
-    /*
-    assert_eq!(params, Err(Error::SearchInvalidDate));
-
-    let mut params = ZeekSearchParams::start_date(Path::new("2024-07-02"));
-    assert!(params.is_ok());
-
-    let mut s = ZeekLogDirectory::new(Some(Path::new("zeek-test-logs")));
-    match &mut s 
-    {
-        Ok(dir) => {
-            let res = dir.search(&params.unwrap());
-            assert_eq!(res, Err(Error::SearchInsufficientParams));
-        }
-        Err(_) => {
-            dbg!(todo!());
-        }
-    }
-
-    let mut params = ZeekSearchParams::start_date(Path::new("2024-07-02"));
-    let mut s = ZeekLogDirectory::new(Some(Path::new("zeek-test-logs")));
-    match &mut s 
-    {
-        Ok(dir) => {
-            let res = dir.search(&params.unwrap());
-            assert_eq!(res, Err(Error::SearchInsufficientParams));
-        }
-        Err(e) => {
-            dbg!(e);
-            //assert_eq!(e, Error::PathNotFound);
-        }
-    }
-
-    let mut params = ZeekSearchParams::start_date(Path::new("2024-07-02"));
-    assert!(params.is_ok());// passes here 
-
-    let mut s = ZeekLogDirectory::new(Some(Path::new("zeek-test-logs")));
-    match &mut s 
-    {
-        Ok(dir) => {
-            dbg!(&dir);
-            params.end_date = Some("2024-07-03");
-            let invalid = dir.search(&params.unwrap());
-            assert_eq!(invalid, Err(Error::SearchInsufficientParams));
-        }
-        Err(_) => {
-            todo!();
-        }
-    }
-    */
 }
 
 #[test]

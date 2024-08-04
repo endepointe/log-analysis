@@ -70,6 +70,8 @@ impl<'a> ZeekLogDirectory<'a>
         }
     }
 
+    // learning the builder patter may solve issue of constructing 
+    // params with required/wanted data.
     fn check_params(&self, params: &ZeekSearchParams) -> u8 // 0001, 0101, etc.
     {
         // This current approach will result in pow(n,2) match arms, where n is the 

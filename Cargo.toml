@@ -17,3 +17,4 @@ default = ["ip2location"]
 ip2location = []
 
 [dependencies]
+derive_builder = "0.20.0"
