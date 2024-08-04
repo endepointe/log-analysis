@@ -1,14 +1,16 @@
 use crate::types::error::Error;
 use crate::zeek::zeek_log_proto::ZeekProtocol;
-
 use std::str::FromStr;
 use std::path::Path;
+use derive_builder::Builder;
 
 // default log path: /usr/local/zeek or /opt/zeek or custom/path/
 // https://docs.zeek.org/en/master/quickstart.html#filesystem-walkthrough
 
 // learn the builder pattern
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Default, Builder)]
+#[builder(setter(into))]
+#[builder(derive(PartialEq, Eq,))]
 pub struct
 ZeekSearchParams<'a>
 {
@@ -19,6 +21,7 @@ ZeekSearchParams<'a>
 }
 impl<'a> ZeekSearchParams<'a>
 {
+    /*
     pub fn new() -> Self
     {
         // maybe add init values for this method instead of defaulting to None.
@@ -29,6 +32,8 @@ impl<'a> ZeekSearchParams<'a>
             ip: None,
         }
     }
+    */
+
     pub fn set_start_date(&mut self, start: &'a Path) -> Result<(), Error>
     {
         match Self::check_date_format(start)

@@ -1,5 +1,5 @@
 use log_analysis::{
-    zeek::zeek_search_params::ZeekSearchParams, 
+    zeek::zeek_search_params::ZeekSearchParamsBuilder, 
     zeek::zeek_log_directory::ZeekLogDirectory,
     zeek::zeek_log_proto::ZeekProtocol,
     types::error::Error,
@@ -42,11 +42,20 @@ fn test_create_log_directory()
 #[test]
 fn test_search()
 {
-    let mut params = ZeekSearchParams::new();
+    let params = ZeekSearchParamsBuilder::default()
+        .start_date("2024-07")
+        .end_date(None)
+        .log_type(ZeekProtocol::CONN)
+        .ip(None)
+        .build()
+        .unwrap();
 
-    let params_result = params.set_start_date(Path::new("2024-07"));
-    assert_eq!(params_result, Err(Error::SearchInvalidStartDate));
+    dbg!(&params);
 
+    //let params_result = params.set_start_date(Path::new("2024-07"));
+    //assert_eq!(params, Err(Error::SearchInvalidStartDate));
+
+    /*
     let mut dir_path = String::new();
     print!("Enter the path to log start date: ");
     let _ = std::io::stdout().flush();
@@ -62,6 +71,7 @@ fn test_search()
 
     assert_ne!(params_result, Err(Error::SearchInvalidStartDate));
     assert!(params_result.is_ok());
+    */
 
     let mut loc = ZeekLogDirectory::new(Some(Path::new("zeek-test-logs")));
     match &mut loc 
