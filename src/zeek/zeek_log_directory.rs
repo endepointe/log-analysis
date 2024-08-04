@@ -162,7 +162,7 @@ impl<'a> ZeekLogDirectory<'a>
                         }
                     }
                     _ => {
-                        dbg!(search);
+                        //dbg!(search);
                         return Ok(self.data.clone())
                     }
                 }

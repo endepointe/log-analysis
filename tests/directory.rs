@@ -40,46 +40,27 @@ fn test_create_log_directory()
 }
 
 #[test]
-fn test_search()
+fn test_search_start_date_pass()
 {
     let params = ZeekSearchParamsBuilder::default()
-        .start_date("2024-07")
+        .start_date("2024-07-02")
         .end_date(None)
-        .log_type(ZeekProtocol::CONN)
+        .log_type(None)
         .ip(None)
         .build()
         .unwrap();
 
-    dbg!(&params);
-
-    //let params_result = params.set_start_date(Path::new("2024-07"));
-    //assert_eq!(params, Err(Error::SearchInvalidStartDate));
-
-    /*
-    let mut dir_path = String::new();
-    print!("Enter the path to log start date: ");
-    let _ = std::io::stdout().flush();
-    if let Ok(res) = std::io::stdin().read_line(&mut dir_path) 
-    {
-        print!("you entered: ");
-        let _ = std::io::stdout().flush();
-        dbg!(res); 
-        dbg!(dir_path.trim_end());
-    }
-
-    let params_result = params.set_start_date(Path::new(dir_path.trim_end()));
-
-    assert_ne!(params_result, Err(Error::SearchInvalidStartDate));
-    assert!(params_result.is_ok());
-    */
-
     let mut loc = ZeekLogDirectory::new(Some(Path::new("zeek-test-logs")));
+
     match &mut loc 
     {
         Ok(dir) => {
             let res = dir.search(&params);
+            //dbg!(&res);
             assert!(res.is_ok());
             let res = res.unwrap();
+
+            /*
             if let Some(s) = &res.get(&ZeekProtocol::CONN)
             {
                 if let Some(d) = &s.get("00:00:00-01:00:00") 
@@ -93,7 +74,6 @@ fn test_search()
             println!("");
             if let Some(s) = &res.get(&ZeekProtocol::SSH)
             {
-                println!("{}", std::mem::size_of_val(&s));
                 if let Some(d) = &s.get("00:00:00-01:00:00") 
                 {
                     for key in d.keys()  
@@ -102,6 +82,34 @@ fn test_search()
                     }
                 }
             }
+            */
+        }
+        Err(_) => {
+            dbg!("complete this error condition");
+        }
+    }
+}
+
+#[test]
+fn test_search_start_date_fail()
+{
+    let params = ZeekSearchParamsBuilder::default()
+        .start_date("2024-07")
+        .end_date(None)
+        .log_type(ZeekProtocol::CONN)
+        .ip(None)
+        .build()
+        .unwrap();
+
+    dbg!(&params);
+
+    let mut loc = ZeekLogDirectory::new(Some(Path::new("zeek-test-logs")));
+
+    match &mut loc 
+    {
+        Ok(dir) => {
+            let res = dir.search(&params);
+            assert_eq!(res, Err(Error::SearchInvalidStartDate));
         }
         Err(_) => {
             dbg!("complete this error condition");
