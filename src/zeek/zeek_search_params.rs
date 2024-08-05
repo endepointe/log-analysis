@@ -18,21 +18,15 @@ ZeekSearchParams<'a>
     pub end_date: Option<&'a str>,
     pub log_type: Option<ZeekProtocol>,
     pub ip: Option<&'a str>,
+    #[builder(default = "4")]
+    param_count: u8,
 }
 impl<'a> ZeekSearchParams<'a>
 {
-    /*
-    pub fn new() -> Self
+    pub fn get_param_count(&self) -> u8
     {
-        // maybe add init values for this method instead of defaulting to None.
-        ZeekSearchParams {
-            start_date: None,
-            end_date: None,
-            log_type: None,
-            ip: None,
-        }
+        self.param_count
     }
-    */
 
     pub fn set_start_date(&mut self, start: &'a Path) -> Result<(), Error>
     {
