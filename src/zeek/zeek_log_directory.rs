@@ -70,41 +70,9 @@ impl<'a> ZeekLogDirectory<'a>
         }
     }
 
-    // learning the builder patter may solve issue of constructing 
-    // params with required/wanted data.
-    fn check_params(&self, params: &ZeekSearchParams) -> u8 // 0001, 0101, etc.
-    {
-        // This current approach will result in pow(n,2) match arms, where n is the 
-        // number of params in the struct.
-        // At the least, there should be at least one param.
-        // Returns specifies what searches to perform.
-        //match (&params.start_date, &params.end_date, &params.log_type, &params.ip) 
-        match (&params.ip, &params.log_type, &params.end_date, &params.start_date)
-        {
-            (None, None, None, None) => return 0,
-            (None, None, None, Some(_start)) => return 1,
-            (None, None, Some(_end), None) => return 2, // comb through all logs until end date
-            (None, None, Some(_end), Some(_start)) => return 3,
-            (None, Some(_log), None, None) => return 4,
-            (None, Some(_log), None, Some(_start)) => return 5,
-            (None, Some(_log), Some(_end), None) => return 6,
-            (None, Some(_log), Some(_end), Some(_start)) => return 7,
-            (Some(_ip), None, None, None) => return 8,
-            (Some(_ip), None, None, Some(_start)) => return 9,
-            (Some(_ip), None, Some(_end), None) => return 10,
-            (Some(_ip), None, Some(_end), Some(_start)) => return 11,
-            (Some(_ip), Some(_log), None, None) => return 12,
-            (Some(_ip), Some(_log), None, Some(_start)) => return 13,
-            (Some(_ip), Some(_log), Some(_end), None) => return 14,
-            (Some(_ip), Some(_log), Some(_end), Some(_start)) => return 15,
-            _ => return 0,
-        }
-    }
-
     pub fn search(&mut self, params: &ZeekSearchParams) -> Result<LogTree, Error> 
     {
-        let search : u8 = Self::check_params(self, params);
-        dbg!(&search);
+        let search : u8 = params.check();
 
         // Somehow, this needs to be available at compile time.
         // For now, just set it to 8 for the bits and accept that the
