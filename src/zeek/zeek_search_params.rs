@@ -14,20 +14,17 @@ use derive_builder::Builder;
 pub struct
 ZeekSearchParams<'a>
 {
+    // default log path: /usr/local/zeek or /opt/zeek or custom/path/
+    // https://docs.zeek.org/en/master/quickstart.html#filesystem-walkthrough
+    pub path_prefix: Option<&'a str>,
     pub start_date: Option<&'a str>,
     pub end_date: Option<&'a str>,
     pub log_type: Option<ZeekProtocol>,
     pub ip: Option<&'a str>,
-    #[builder(default = "4")]
-    param_count: u8,
+
 }
 impl<'a> ZeekSearchParams<'a>
 {
-    pub fn get_param_count(&self) -> u8
-    {
-        self.param_count
-    }
-
     // learning the builder patter may solve issue of constructing 
     // params with required/wanted data.
     pub fn check(&self) -> u8 // 0001, 0101, etc.
@@ -58,34 +55,34 @@ impl<'a> ZeekSearchParams<'a>
         }
     }
 
-    pub fn set_start_date(&mut self, start: &'a Path) -> Result<(), Error>
+    pub fn get_start_date_path(&self) -> String 
     {
-        match Self::check_date_format(start)
+        let mut search_path = String::new();
+
+        if Self::path_prefix_exists(self) 
         {
-            true => {
-                self.start_date = Some(start.to_str().unwrap()); 
-                Ok(())
-            }
-            false => {
-                Err(Error::SearchInvalidStartDate)
-            }
+            search_path.push_str(&self.path_prefix.unwrap());
+            search_path.push_str("/");
+            search_path.push_str(&self.start_date.unwrap());
+            search_path.push_str("/");
+        } 
+        else 
+        {
+            search_path.push_str(&self.start_date.unwrap());
+            search_path.push_str("/");
         }
+
+        search_path
     }
 
-    pub fn set_end_date(&mut self, end: &'a Path) -> Result<(), Error>
+    fn path_prefix_exists(&self) -> bool 
     {
-        match Self::check_date_format(end)
+        match &self.path_prefix 
         {
-            true => {
-                self.end_date = Some(end.to_str().unwrap()); 
-                Ok(())
-            }
-            false => {
-                Err(Error::SearchInvalidEndDate)
-            }
+            Some(_) => { return true }
+            None => { return false}
         }
     }
-
     // todo: check that the chars in range between [0-9]. 
     // For now, [Aa-Zz] passes and it shouldn't.
     fn check_date_format(p: &'a Path) -> bool
