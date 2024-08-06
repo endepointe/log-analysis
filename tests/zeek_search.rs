@@ -43,14 +43,14 @@ fn test_create_log_directory()
 }
 
 #[test]
-fn test_search_0001_pass()
+fn test_search_000_pass()
 {
     let params = ZeekSearchParamsBuilder::default()
         .path_prefix("zeek-test-logs")
         .start_date("2024-07-02")
         .end_date(None)
         .log_type(None)
-        .ip(None)
+        .src_ip(None)
         .build()
         .unwrap();
 
@@ -58,17 +58,18 @@ fn test_search_0001_pass()
 
     let res = log.search(&params);
     assert!(res.is_ok());
+    //dbg!(res);
 }
 
 #[test]
-fn test_search_0001_fail()
+fn test_search_000_fail()
 {
     let params = ZeekSearchParamsBuilder::default()
         .path_prefix("zeek-test-logs")
         .start_date("2024-07")
         .end_date(None)
         .log_type(None)
-        .ip(None)
+        .src_ip(None)
         .build()
         .unwrap();
 
@@ -80,40 +81,14 @@ fn test_search_0001_fail()
 }
 
 #[test]
-fn test_print_time_ranges_proto_any()
+fn test_search_010_pass()
 {
     let params = ZeekSearchParamsBuilder::default()
         .path_prefix("zeek-test-logs")
         .start_date("2024-07-02")
         .end_date(None)
         .log_type(None)
-        .ip(None)
-        .build()
-        .unwrap();
-
-    let mut log = ZeekLog::new();
-
-    let res = log.search(&params);
-    assert!(res.is_ok());
-    let mut res = res.unwrap();
-    if let Some(proto) = res.get_mut(&ZeekProtocol::SSH) 
-    {
-        for key in proto.keys()
-        {
-            dbg!(&key);
-        }
-    }
-}
-
-#[test]
-fn test_print_ip_proto_any()
-{
-    let params = ZeekSearchParamsBuilder::default()
-        .path_prefix("zeek-test-logs")
-        .start_date("2024-07-02")
-        .end_date(None)
-        .log_type(None)
-        .ip(None)
+        .src_ip("43.134.231.178")
         .build()
         .unwrap();
 
@@ -122,21 +97,5 @@ fn test_print_ip_proto_any()
     let res = log.search(&params);
     assert!(res.is_ok());
     let res = res.unwrap();
-    if let Some(proto) = res.get(&ZeekProtocol::CONN) 
-    {
-        // hashmap
-        if let Some(entry) = proto.get("00:00:00-01:00:00") 
-        {
-            // hashmap
-            print_type_of(&entry);
-            dbg!(&entry.keys());
-            if entry.contains_key("id.orig_h")
-            {
-                let ts = entry.get("ts").unwrap();
-                let ip = entry.get("id.orig_h").unwrap();
-                dbg!(&ts[0],&ip[0]);
-            }
-            
-        }
-    }
+    dbg!(res);
 }

@@ -20,38 +20,30 @@ ZeekSearchParams<'a>
     pub start_date: Option<&'a str>,
     pub end_date: Option<&'a str>,
     pub log_type: Option<ZeekProtocol>,
-    pub ip: Option<&'a str>,
+    pub src_ip: Option<&'a str>,
 
 }
 impl<'a> ZeekSearchParams<'a>
 {
     // learning the builder patter may solve issue of constructing 
     // params with required/wanted data.
-    pub fn check(&self) -> u8 // 0001, 0101, etc.
+    pub fn check(&self) -> u8 // 001, 101, etc.
     {
-        // This current approach will result in pow(n,2) match arms, where n is the 
-        // number of params in the struct.
+        // This current approach will result in pow(2,n) match arms, where n is the 
+        // number of optionaln params in the struct.
         // At the least, there should be at least one param.
         // Returns specifies what searches to perform.
-        match (&self.ip, &self.log_type, &self.end_date, &self.start_date)
+        match (&self.src_ip, &self.log_type, &self.end_date)
         {
-            (None, None, None, None) => return 0,
-            (None, None, None, Some(_start)) => return 1,
-            (None, None, Some(_end), None) => return 2, // comb through all logs until end date
-            (None, None, Some(_end), Some(_start)) => return 3,
-            (None, Some(_log), None, None) => return 4,
-            (None, Some(_log), None, Some(_start)) => return 5,
-            (None, Some(_log), Some(_end), None) => return 6,
-            (None, Some(_log), Some(_end), Some(_start)) => return 7,
-            (Some(_ip), None, None, None) => return 8,
-            (Some(_ip), None, None, Some(_start)) => return 9,
-            (Some(_ip), None, Some(_end), None) => return 10,
-            (Some(_ip), None, Some(_end), Some(_start)) => return 11,
-            (Some(_ip), Some(_log), None, None) => return 12,
-            (Some(_ip), Some(_log), None, Some(_start)) => return 13,
-            (Some(_ip), Some(_log), Some(_end), None) => return 14,
-            (Some(_ip), Some(_log), Some(_end), Some(_start)) => return 15,
-            _ => return 0,
+            (None, None, None) => return 0,
+            (None, None, Some(_end)) => return 1, 
+            (None, Some(_log), None) => return 2,
+            (None, Some(_log), Some(_end)) => return 3,
+            (Some(src_ip), None, None) => return 4,
+            (Some(src_ip), None, Some(_end)) => return 5,
+            (Some(src_ip), Some(_log), None) => return 6,
+            (Some(src_ip), Some(_log), Some(_end)) => return 7,
+            _ => return 8
         }
     }
 
