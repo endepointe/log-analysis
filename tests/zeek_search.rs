@@ -81,7 +81,7 @@ fn test_search_000_fail()
 }
 
 #[test]
-fn test_search_010_pass()
+fn test_search_100_pass()
 {
     let params = ZeekSearchParamsBuilder::default()
         .path_prefix("zeek-test-logs")
@@ -89,6 +89,26 @@ fn test_search_010_pass()
         .end_date(None)
         .log_type(None)
         .src_ip("43.134.231.178")
+        .build()
+        .unwrap();
+
+    let mut log = ZeekLog::new();
+
+    let res = log.search(&params);
+    assert!(res.is_ok());
+    let res = res.unwrap();
+    dbg!(res);
+}
+
+#[test]
+fn test_search_100_fail()
+{
+    let params = ZeekSearchParamsBuilder::default()
+        .path_prefix("zeek-test-logs")
+        .start_date("2024-07-02")
+        .end_date(None)
+        .log_type(None)
+        .src_ip("3.14.23.8")// ip should not exist in the logs
         .build()
         .unwrap();
 
