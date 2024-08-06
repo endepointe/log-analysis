@@ -18,3 +18,4 @@ ip2location = []
 
 [dependencies]
 derive_builder = "0.20.0"
+svg = "0.17.0"
