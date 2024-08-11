@@ -4,30 +4,26 @@ Rust library designed for extracting relevant information from zeek logs.
 
 Results returned in a BTreeMap for furth processing.
 
-## Features
-
 ## Installation
 
 cargo add log_analysis
 
 ## Usage
 ```rust
-
+let search_params = ZeekSearchParamsBuilder::default()
+    .path_prefix("zeek-test-logs")
+    .start_date("2024-07-02")
+    .src_ip("43.134.231.178")
+    .build()
+    .unwrap();
+let mut log = ZeekLog::new();
+let res = log.search(&params); // Ok(LogTree)
+// use res as needed in your application
 ```
 
-### Basic Usage
-
-todo
-
-### Using `ip2location` Feature
-
-todo
-
-## Features
-
-- `ip2location`: Enables IP geolocation using the IP2Location database.
-
 ## Testing
+
+Testing is straightforward. Tests located in tests/. Test-case addtions welcomed in PRs.
 
 ### Performance
 ```bash

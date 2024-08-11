@@ -43,11 +43,9 @@ fn test_search_000_pass()
         .unwrap();
 
     let mut log = ZeekLog::new();
-
     let res = log.search(&params);
     assert!(res.is_ok());
     dbg!(std::mem::size_of_val(&res));
-    //dbg!(res);
 }
 
 #[test]
@@ -58,9 +56,7 @@ fn test_search_000_fail()
         .start_date("2024-07")
         .build()
         .unwrap();
-
     let mut log = ZeekLog::new();
-
     let res = log.search(&params);
     assert_eq!(res, Err(Error::SearchInvalidStartDate));
     dbg!(std::mem::size_of_val(&res));
@@ -75,9 +71,7 @@ fn test_search_100_pass()
         .src_ip("43.134.231.178")
         .build()
         .unwrap();
-
     let mut log = ZeekLog::new();
-
     let res = log.search(&params);
     assert!(res.is_ok());
 }
@@ -91,9 +85,7 @@ fn test_search_100_fail()
         .src_ip("3.14.23.8")// ip should not exist in the logs
         .build()
         .unwrap();
-
     let mut log = ZeekLog::new();
-
     let res = log.search(&params);
     assert!(res.is_ok());
     let res = res.unwrap();
@@ -107,12 +99,10 @@ fn test_search_110_pass()
         .path_prefix("zeek-test-logs")
         .start_date("2024-07-02")
         .src_ip("43.134.231.178")
-        .log_type("weird")
+        .log_type("wEird")
         .build()
         .unwrap();
-
     let mut log = ZeekLog::new();
-
     let res = log.search(&params);
     assert!(res.is_ok());
 }
@@ -124,11 +114,10 @@ fn test_search_110_fail()
         .path_prefix("zeek-test-logs")
         .start_date("2024-07-02")
         .src_ip("43.134.231.178")
-        .log_type("http")
+        .log_type("htTp")
         .build()
         .unwrap();
     let mut log = ZeekLog::new();
     let res = log.search(&params);
-    dbg!(&res);
     assert_eq!(true, res.expect("should be Ok(BTreeMap)").is_empty());
 }
