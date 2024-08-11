@@ -10,7 +10,7 @@ cargo add log-analysis
 
 ## Usage
 ```rust
-let search_params = ZeekSearchParamsBuilder::default()
+let params = ZeekSearchParamsBuilder::default()
     .path_prefix("zeek-test-logs")
     .start_date("2024-07-02")
     .src_ip("43.134.231.178")
