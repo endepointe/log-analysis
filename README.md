@@ -1,20 +1,18 @@
 # log-analysis (not complete)
 
+Rust library designed for extracting relevant information from zeek logs.
 
-Rust library designed to read and parse Zeek logs. It includes an optional `ip2location` feature for IP geolocation.
+Results returned in a BTreeMap for furth processing.
 
 ## Features
 
-- Search through various logs, such as zeek, and return meaningful results for other applications.
-- Optional IP geolocation using `ip2location`
-
 ## Installation
 
-todo
+cargo add log_analysis
 
 ## Usage
 ```rust
-let log = ""
+
 ```
 
 ### Basic Usage

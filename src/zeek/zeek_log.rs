@@ -152,7 +152,7 @@ impl ZeekLog
     {        
         if let Some(t) = &params.log_type
         {
-            if t == &proto 
+            if ZeekProtocol::read(&t) == proto 
             {
                 let src_ip = params.src_ip.unwrap();
                 for n in 8..line.len() // line.len() - 2 == #close\tdate which is not used.

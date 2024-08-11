@@ -23,7 +23,7 @@ ZeekSearchParams<'a>
     #[builder(default)]
     pub end_date: Option<&'a str>,
     #[builder(default)]
-    pub log_type: Option<ZeekProtocol>,
+    pub log_type: Option<&'a str>,//ZeekProtocol>,
     #[builder(default)]
     pub src_ip: Option<&'a str>,
 

@@ -38,7 +38,7 @@ impl ZeekProtocol
 {
     pub fn read(name: &str) -> ZeekProtocol
     {
-        match name
+        match name.to_ascii_lowercase().as_str()
         {
             "conn" => ZeekProtocol::CONN,
             "dns" => ZeekProtocol::DNS,
