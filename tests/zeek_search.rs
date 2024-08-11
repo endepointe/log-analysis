@@ -108,7 +108,6 @@ fn test_search_110_pass()
         .start_date("2024-07-02")
         .src_ip("43.134.231.178")
         .log_type("weird")
-        //.log_type(ZeekProtocol::WEIRD)
         .build()
         .unwrap();
 
@@ -126,7 +125,6 @@ fn test_search_110_fail()
         .start_date("2024-07-02")
         .src_ip("43.134.231.178")
         .log_type("http")
-        //.log_type(ZeekProtocol::HTTP)
         .build()
         .unwrap();
     let mut log = ZeekLog::new();
