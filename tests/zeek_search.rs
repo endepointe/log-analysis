@@ -23,7 +23,8 @@ fn test_create_log()
     let dir = ZeekLog::new();
     assert_eq!(true, dir.data.is_empty());
 }
-
+// 0    0           0
+// ip   log_type    end_date
 #[test]
 fn test_search_params()
 {
@@ -87,8 +88,6 @@ fn test_search_100_fail()
     let params = ZeekSearchParamsBuilder::default()
         .path_prefix("zeek-test-logs")
         .start_date("2024-07-02")
-        .end_date(None)
-        .log_type(None)
         .src_ip("3.14.23.8")// ip should not exist in the logs
         .build()
         .unwrap();
@@ -97,6 +96,39 @@ fn test_search_100_fail()
 
     let res = log.search(&params);
     assert!(res.is_ok());
-    //let res = res.unwrap();
-    //dbg!(res);
+    let res = res.unwrap();
+    assert!(res.is_empty());
+}
+
+#[test]
+fn test_search_110_pass()
+{
+    let params = ZeekSearchParamsBuilder::default()
+        .path_prefix("zeek-test-logs")
+        .start_date("2024-07-02")
+        .src_ip("43.134.231.178")
+        .log_type(ZeekProtocol::WEIRD)
+        .build()
+        .unwrap();
+
+    let mut log = ZeekLog::new();
+
+    let res = log.search(&params);
+    assert!(res.is_ok());
+}
+
+#[test]
+fn test_search_110_fail()
+{
+    let params = ZeekSearchParamsBuilder::default()
+        .path_prefix("zeek-test-logs")
+        .start_date("2024-07-02")
+        .src_ip("43.134.231.178")
+        .log_type(ZeekProtocol::HTTP)
+        .build()
+        .unwrap();
+    let mut log = ZeekLog::new();
+    let res = log.search(&params);
+    dbg!(&res);
+    assert_eq!(true, res.expect("should be Ok(BTreeMap)").is_empty());
 }

@@ -86,6 +86,11 @@ impl ZeekLog
                 {
                     0 => {Self::_000(_separator, &line, map, &data);}
                     4 => {Self::_100(_separator, &line, map, &data, params);}
+                    6 => {
+                        let log_type : &Vec<&str> = &line[4].split(_separator).collect();
+                        Self::_110(_separator, &line, map, &data, params, 
+                                   ZeekProtocol::read(log_type[1]));
+                    }
                     _ => {}
                 }
             }
@@ -95,6 +100,7 @@ impl ZeekLog
         }
         Ok(())
     }
+    // date (all)
     fn _000(c: char, line: &Vec<&str>, map: &mut HashMap<String, Vec<String>>, data: &Vec<String>) 
     {
         for n in 8..line.len() // line.len() - 2 == #close\tdate which is not used.
@@ -110,7 +116,7 @@ impl ZeekLog
             }
         }
     }
-
+    // ip
     fn _100(c: char, 
             line: &Vec<&str>, 
             map: &mut HashMap<String, Vec<String>>, 
@@ -130,6 +136,38 @@ impl ZeekLog
                     if &items[2] == &src_ip 
                     {
                         m.push(items[item].to_string());
+                    }
+                }
+            }
+        }
+    }
+
+    // ip + log_type
+    fn _110(c: char, 
+            line: &Vec<&str>, 
+            map: &mut HashMap<String, Vec<String>>, 
+            data: &Vec<String>,
+            params: &ZeekSearchParams,
+            proto: ZeekProtocol) 
+    {        
+        if let Some(t) = &params.log_type
+        {
+            if t == &proto 
+            {
+                let src_ip = params.src_ip.unwrap();
+                for n in 8..line.len() // line.len() - 2 == #close\tdate which is not used.
+                {
+                    let items = line[n].split(c).collect::<Vec<_>>();
+                    if items[0] == "#close" {break;}
+                    for item in 0..items.len() - 1
+                    {
+                        if let Some(m) = map.get_mut(&data[item])
+                        {
+                            if &items[2] == &src_ip 
+                            {
+                                m.push(items[item].to_string());
+                            }
+                        }
                     }
                 }
             }
