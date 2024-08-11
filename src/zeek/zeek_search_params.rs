@@ -16,10 +16,15 @@ ZeekSearchParams<'a>
 {
     // default log path: /usr/local/zeek or /opt/zeek or custom/path/
     // https://docs.zeek.org/en/master/quickstart.html#filesystem-walkthrough
+    #[builder(default)]
     pub path_prefix: Option<&'a str>,
+    #[builder(default)]
     pub start_date: Option<&'a str>,
+    #[builder(default)]
     pub end_date: Option<&'a str>,
+    #[builder(default)]
     pub log_type: Option<ZeekProtocol>,
+    #[builder(default)]
     pub src_ip: Option<&'a str>,
 
 }

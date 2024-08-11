@@ -117,6 +117,7 @@ impl ZeekLog
             data: &Vec<String>,
             params: &ZeekSearchParams) 
     {
+        dbg!(&params.src_ip);
         let src_ip = params.src_ip.unwrap();
         for n in 8..line.len() // line.len() - 2 == #close\tdate which is not used.
         {
