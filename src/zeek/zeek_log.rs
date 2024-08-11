@@ -117,7 +117,7 @@ impl ZeekLog
             data: &Vec<String>,
             params: &ZeekSearchParams) 
     {
-        dbg!(&params.src_ip);
+        //dbg!(&params.src_ip);
         let src_ip = params.src_ip.unwrap();
         for n in 8..line.len() // line.len() - 2 == #close\tdate which is not used.
         {
@@ -129,18 +129,56 @@ impl ZeekLog
                 {
                     if &items[2] == &src_ip 
                     {
-                        //dbg!(&items[2], src_ip);
                         m.push(items[item].to_string());
                     }
                 }
             }
         }
     }
+    
+    fn _reduce(&mut self)
+    {
+        let mut keys_to_remove = Vec::new();
+        for (outer_key, middle_map) in self.data.iter_mut() 
+        {
+            let mut middle_keys_to_remove = Vec::new();
+            for (middle_key, inner_map) in middle_map.iter_mut() 
+            {
+                let mut inner_keys_to_remove = Vec::new();
+                for (inner_key, vec) in inner_map.iter_mut() 
+                {
+                    if vec.is_empty() 
+                    {
+                        inner_keys_to_remove.push(inner_key.clone());
+                    }
+                }
+                for key in inner_keys_to_remove 
+                {
+                    inner_map.remove(&key);
+                }
+                if inner_map.is_empty() 
+                {
+                    middle_keys_to_remove.push(middle_key.clone());
+                }
+            }
+            for key in middle_keys_to_remove 
+            {
+                middle_map.remove(&key);
+            }
+            if middle_map.is_empty() 
+            {
+                keys_to_remove.push(outer_key.clone());
+            }
+        }
+        for key in keys_to_remove 
+        {
+            self.data.remove(&key);
+        }
+    }
 
     pub fn search(&mut self, params: &ZeekSearchParams) -> Result<LogTree, Error> 
     {
         let search : u8 = params.check();
-        dbg!(&search);
         let path = params.get_start_date_path();     
         let path = Path::new(path.as_str());     
         if !path.is_dir() {
@@ -193,6 +231,7 @@ impl ZeekLog
                 }
             }
         }
+        Self::_reduce(self);
         return Ok(self.data.clone())
     }
 }

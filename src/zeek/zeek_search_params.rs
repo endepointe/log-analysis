@@ -48,7 +48,8 @@ impl<'a> ZeekSearchParams<'a>
             (Some(src_ip), None, Some(_end)) => return 5,
             (Some(src_ip), Some(_log), None) => return 6,
             (Some(src_ip), Some(_log), Some(_end)) => return 7,
-            _ => return 8
+            _ => return 8 // value should not be greater than 7.
+                          // Starting day param is likely missing.
         }
     }
 
