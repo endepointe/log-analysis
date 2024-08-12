@@ -270,7 +270,6 @@ impl ZeekLog
             }
         }
         Self::_reduce(self);
-        //return Ok(self.data.clone())
         return Ok(())
     }
 }
