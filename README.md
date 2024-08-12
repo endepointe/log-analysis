@@ -20,6 +20,8 @@ let mut log = ZeekLog::new();
 let res = log.search(&params); // Ok(())
 assert_eq!(true, res.is_ok));
 assert_eq!(false, log.data.is_empty())
+let serialized = serde_json::to_string(&log.data);
+assert!(serialized.is_ok());
 ```
 
 ## Testing

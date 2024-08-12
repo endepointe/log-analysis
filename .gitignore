@@ -8,7 +8,8 @@ zeek-test-logs/
 # test tls
 *.pem
 
-
 #flamegraph
 flame*.svg
 perf.data*
+
+getcred.sh
