@@ -17,8 +17,9 @@ let params = ZeekSearchParamsBuilder::default()
     .build()
     .unwrap();
 let mut log = ZeekLog::new();
-let res = log.search(&params); // Ok(LogTree)
-// use res as needed in your application
+let res = log.search(&params); // Ok(())
+assert_eq!(true, res.is_ok));
+assert_eq!(false, log.data.is_empty())
 ```
 
 ## Testing

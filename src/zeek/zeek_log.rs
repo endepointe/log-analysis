@@ -214,7 +214,7 @@ impl ZeekLog
         }
     }
 
-    pub fn search(&mut self, params: &ZeekSearchParams) -> Result<LogTree, Error> 
+    pub fn search(&mut self, params: &ZeekSearchParams) -> Result<(), Error> 
     {
         let search : u8 = params.check();
         let path = params.get_start_date_path();     
@@ -270,7 +270,8 @@ impl ZeekLog
             }
         }
         Self::_reduce(self);
-        return Ok(self.data.clone())
+        //return Ok(self.data.clone())
+        return Ok(())
     }
 }
 
