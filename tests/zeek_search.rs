@@ -74,6 +74,16 @@ fn test_search_100_pass()
     let mut log = ZeekLog::new();
     let res = log.search(&params);
     assert!(res.is_ok());
+
+    let params = ZeekSearchParamsBuilder::default()
+        .path_prefix("~/dev/log-analysis/zeek-test-logs")
+        .start_date("2024-07-02")
+        .src_ip("43.134.231.178")
+        .build()
+        .unwrap();
+    let mut log = ZeekLog::new();
+    let res = log.search(&params);
+    assert!(res.is_ok());
 }
 
 #[test]

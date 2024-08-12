@@ -70,6 +70,13 @@ impl<'a> ZeekSearchParams<'a>
             search_path.push_str("/");
         }
 
+        // check for ~ in path
+        if search_path.as_bytes()[0] as u16 == 126 as u16
+        {
+            search_path.remove(0);
+            search_path.insert_str(0, std::env::var("HOME")
+                                   .expect("should exist on linux").as_str());
+        }
         search_path
     }
 
