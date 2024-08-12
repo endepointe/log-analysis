@@ -1,5 +1,7 @@
 
-#[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd)]
+use serde::{Serialize, Deserialize};
+
+#[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
 pub enum 
 ZeekProtocol
 {
@@ -33,7 +35,6 @@ ZeekProtocol
     REPORTER,
     SIP,
 }
-//impl std::str::FromStr for ZeekProtocol
 impl ZeekProtocol
 {
     pub fn read(name: &str) -> ZeekProtocol

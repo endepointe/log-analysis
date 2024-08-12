@@ -7,13 +7,12 @@ use std::path::Path;
 use std::collections::HashMap;
 use std::collections::btree_map::BTreeMap;
 
-#[derive(Debug, PartialEq, Eq)]
+use serde::{Serialize, Deserialize};
+
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct
 ZeekLog
 {
-    // default log path: /usr/local/zeek or /opt/zeek or custom/path/
-    // https://docs.zeek.org/en/master/quickstart.html#filesystem-walkthrough
-    //path_prefix: Option<&'a str>,
     pub data: LogTree,
 }
 impl ZeekLog
