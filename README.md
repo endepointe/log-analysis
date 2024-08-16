@@ -14,6 +14,7 @@ let params = ZeekSearchParamsBuilder::default()
     .path_prefix("zeek-test-logs")
     .start_date("2024-07-02")
     .src_ip("43.134.231.178")
+    .proto_type("coNn")
     .build()
     .unwrap();
 let mut log = ZeekLog::new();
