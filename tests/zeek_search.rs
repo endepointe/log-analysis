@@ -49,7 +49,7 @@ fn test_create_log()
 }
 
 // 0    0           0
-// ip   log_type    end_date
+// ip   proto_type    end_date
 #[test]
 fn test_search_params()
 {
@@ -133,7 +133,7 @@ fn test_search_110_pass()
         .path_prefix("zeek-test-logs")
         .start_date("2024-07-02")
         .src_ip("43.134.231.178")
-        .log_type("wEird")
+        .proto_type("wEird")
         .build()
         .unwrap();
     let mut log = ZeekLog::new();
@@ -149,7 +149,7 @@ fn test_search_110_fail()
         .path_prefix("zeek-test-logs")
         .start_date("2024-07-02")
         .src_ip("43.134.231.178")
-        .log_type("htTp")
+        .proto_type("htTp")
         .build()
         .unwrap();
     let mut log = ZeekLog::new();

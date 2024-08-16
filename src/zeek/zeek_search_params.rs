@@ -23,7 +23,7 @@ ZeekSearchParams<'a>
     #[builder(default)]
     pub end_date: Option<&'a str>,
     #[builder(default)]
-    pub log_type: Option<&'a str>,//ZeekProtocol
+    pub proto_type: Option<&'a str>,//ZeekProtocol
     #[builder(default)]
     pub src_ip: Option<&'a str>,
 
@@ -38,7 +38,7 @@ impl<'a> ZeekSearchParams<'a>
         // number of optionaln params in the struct.
         // At the least, there should be at least one param.
         // Returns specifies what searches to perform.
-        match (&self.src_ip, &self.log_type, &self.end_date)
+        match (&self.src_ip, &self.proto_type, &self.end_date)
         {
             (None, None, None) => return 0,
             (None, None, Some(_end)) => return 1, 

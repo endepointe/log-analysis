@@ -86,9 +86,9 @@ impl ZeekLog
                     0 => {Self::_000(_separator, &line, map, &data);}
                     4 => {Self::_100(_separator, &line, map, &data, params);}
                     6 => {
-                        let log_type : &Vec<&str> = &line[4].split(_separator).collect();
+                        let proto_type : &Vec<&str> = &line[4].split(_separator).collect();
                         Self::_110(_separator, &line, map, &data, params, 
-                                   ZeekProtocol::read(log_type[1]));
+                                   ZeekProtocol::read(proto_type[1]));
                     }
                     _ => {}
                 }
@@ -141,7 +141,7 @@ impl ZeekLog
         }
     }
 
-    // ip + log_type
+    // ip + proto_type
     fn _110(c: char, 
             line: &Vec<&str>, 
             map: &mut HashMap<String, Vec<String>>, 
@@ -149,7 +149,7 @@ impl ZeekLog
             params: &ZeekSearchParams,
             proto: ZeekProtocol) 
     {        
-        if let Some(t) = &params.log_type
+        if let Some(t) = &params.proto_type
         {
             if ZeekProtocol::read(&t) == proto 
             {
