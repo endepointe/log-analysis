@@ -4,10 +4,12 @@ use crate::zeek::zeek_log_proto::ZeekProtocol;
 use crate::zeek::zeek_search_params::ZeekSearchParams;
 use crate::types::helpers::print_type_of;
 use std::path::Path;
+use std::io::{Read, Write, BufReader, BufRead};
 use std::collections::HashMap;
 use std::collections::btree_map::BTreeMap;
-
+use flate2::read::GzDecoder;
 use serde::{Serialize, Deserialize};
+
 
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct
@@ -32,140 +34,149 @@ impl ZeekLog
             search_bits: u8,
             params: &ZeekSearchParams) -> Result<(), Error>
     {
-        let output = std::process::Command::new("zcat")
-            .arg(&p)
-            .output()
-            .expect("failed to zcat the log file");
-        let log_header = output.stdout;
-
         let mut _separator : char = ' ';
+        let mut proto_type = Vec::<String>::new();
         let mut fields = Vec::<String>::new(); 
+ 
+        let file = std::fs::File::open(p).expect("conn file should exist");
 
-        match std::str::from_utf8(&log_header) 
+        let mut separator_set = false;
+        let mut proto_type_set = false;
+        let mut fields_set = false;
+        let mut count: usize = 0;
+        let mut s = String::new();
+        let mut d = GzDecoder::new(file);
+        let reader = BufReader::new(d);
+
+        // maybe clean up the guard clauses...later. At the very least it would make the method
+        // shorter. I would also get better at building with rust. 
+        for line in reader.lines() 
         {
-            Ok(v) => {
-                // Read the header.
-                let line: Vec<&str> = v.split('\n').collect();
-                let result = line[0].split(' ')
-                                .collect::<Vec<&str>>()[1]
-                                .strip_prefix("\\x");
+            if !separator_set 
+            {
+                let separator_line = line.as_ref();
+                let result: Vec<&str> = separator_line
+                    .expect("Should have been able to read the line.")
+                    .split(' ').collect::<Vec<&str>>();
 
-                // Case when file does not have header info.
-                // This should not return an error due to the calling function's 
-                // check. Leaving here until something useful is needed from the 
-                // logs without a header.
-                if result == None { 
-                    return Err(Error::NoLogHeader) 
-                } 
-
-                let result = u8::from_str_radix(result.unwrap().trim(), 16)
-                    .expect("Should have a separator character in the log file: "); 
-
-                _separator = char::from(result);
-
-                let s = line[6].split(_separator).collect::<Vec<_>>();
-
-                for i in 1..s.len() 
+                if result[0] == "#separator"
                 {
-                    fields.push(s[i].to_string());
+                    separator_set = true;
+                    let value = result[1].strip_prefix("\\x").expect("Should have a separator");
+                    let value = u8::from_str_radix(value.trim(), 16)
+                        .expect("Should have a separator character in the log file: "); 
+                    _separator = char::from(value);
                 }
+            }
 
-                let mut data = Vec::<String>::new();
+            if !proto_type_set
+            {
+                let proto_ref = line.as_ref();
+                let result: Vec<&str> = proto_ref.expect("proto_ref")
+                    .split(_separator).collect::<Vec<&str>>();
+                if result[0] == "#path"
+                {
+                    proto_type_set = true;
+                    proto_type.push(result[1].to_string());
+                }
+            }
+
+            if !fields_set
+            {
+                let fields_ref = line.as_ref().expect("fields_ref")
+                    .split(_separator).collect::<Vec<&str>>();
+                if fields_ref[0] == "#fields"
+                {
+                    for i in 1..fields_ref.len() 
+                    {
+                        fields.push(fields_ref[i].to_string());
+                    }
+                    fields_set = true; // enables the data insertions
+                }
                 for f in fields.iter()
                 {
                     map.insert(f.to_string(), Vec::<String>::new());
-                    data.push(f.to_string());
                 }
+            }
 
-                // Should never fail.
-                assert_eq!(data.len(), fields.len());
+            if fields_set
+            {
+                let data = line.as_ref().expect("values should be refd")
+                    .split(_separator).collect::<Vec<&str>>();
 
                 // Load the data based on search_bits
                 match search_bits
                 {
-                    0 => {Self::_000(_separator, &line, map, &data);}
-                    4 => {Self::_100(_separator, &line, map, &data, params);}
+                    0 => {Self::_000(&fields, &data, map);}
+                    4 => {Self::_100(&fields, &data, map, params);}
                     6 => {
-                        let proto_type : &Vec<&str> = &line[4].split(_separator).collect();
-                        Self::_110(_separator, &line, map, &data, params, 
-                                   ZeekProtocol::read(proto_type[1]));
+                        Self::_110(&fields, &data, map, params, 
+                                   ZeekProtocol::read(proto_type[0].as_str()));
                     }
                     _ => {}
                 }
             }
-            Err(_) => {
-                return  Err(Error::Unspecified) 
-            }
         }
         Ok(())
     }
-    // date (all)
-    fn _000(c: char, line: &Vec<&str>, map: &mut HashMap<String, Vec<String>>, data: &Vec<String>) 
+
+    // data (all)
+    fn _000(fields: &Vec<String>, 
+            data: &Vec<&str>, 
+            map: &mut HashMap<String, Vec<String>>) 
     {
-        for n in 8..line.len() // line.len() - 2 == #close\tdate which is not used.
+        let mut iter = std::iter::zip(fields,data);
+        for (field,item) in iter
         {
-            let items = line[n].split(c).collect::<Vec<_>>();
-            if items[0] == "#close" {break;}
-            for item in 0..items.len() - 1
+            if let Some(mapkey) = map.get_mut(field)
             {
-                if let Some(m) = map.get_mut(&data[item])
-                {
-                    m.push(items[item].to_string());
-                }
+                mapkey.push(item.to_string());
             }
         }
     }
     // ip
-    fn _100(c: char, 
-            line: &Vec<&str>, 
+    fn _100(fields: &Vec<String>, 
+            data: &Vec<&str>, 
             map: &mut HashMap<String, Vec<String>>, 
-            data: &Vec<String>,
             params: &ZeekSearchParams) 
     {
-        //dbg!(&params.src_ip);
+
         let src_ip = params.src_ip.unwrap();
-        for n in 8..line.len() // line.len() - 2 == #close\tdate which is not used.
+        let mut iter = std::iter::zip(fields,data);
+        for (field,item) in iter
         {
-            let items = line[n].split(c).collect::<Vec<_>>();
-            if items[0] == "#close" {break;}
-            for item in 0..items.len() - 1
+            if let Some(mapkey) = map.get_mut(field)
             {
-                if let Some(m) = map.get_mut(&data[item])
+                if *item == src_ip
                 {
-                    if &items[2] == &src_ip 
-                    {
-                        m.push(items[item].to_string());
-                    }
+                    mapkey.push(item.to_string());
                 }
             }
         }
     }
 
     // ip + proto_type
-    fn _110(c: char, 
-            line: &Vec<&str>, 
+    fn _110(fields: &Vec<String>, 
+            data: &Vec<&str>, 
             map: &mut HashMap<String, Vec<String>>, 
-            data: &Vec<String>,
             params: &ZeekSearchParams,
             proto: ZeekProtocol) 
     {        
+
         if let Some(t) = &params.proto_type
         {
             if ZeekProtocol::read(&t) == proto 
             {
                 let src_ip = params.src_ip.unwrap();
-                for n in 8..line.len() // line.len() - 2 == #close\tdate which is not used.
+                let mut iter = std::iter::zip(fields,data);
+                for (field,item) in iter
                 {
-                    let items = line[n].split(c).collect::<Vec<_>>();
-                    if items[0] == "#close" {break;}
-                    for item in 0..items.len() - 1
+                    if let Some(mapkey) = map.get_mut(field)
                     {
-                        if let Some(m) = map.get_mut(&data[item])
+                        //dbg!(&mapkey,&item,&field, &item);
+                        if *item == src_ip
                         {
-                            if &items[2] == &src_ip 
-                            {
-                                m.push(items[item].to_string());
-                            }
+                            mapkey.push(item.to_string());
                         }
                     }
                 }
@@ -268,6 +279,7 @@ impl ZeekLog
                 }
             }
         }
+        //dbg!(&self);
         Self::_reduce(self);
         return Ok(())
     }

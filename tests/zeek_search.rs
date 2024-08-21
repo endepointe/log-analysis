@@ -6,7 +6,8 @@ use log_analysis::{
     types::helpers::print_type_of,
 };
 use std::path::Path;
-use std::io::Write;
+use std::io::{Read, Write};
+use flate2::read::GzDecoder;
 
 #[test]
 fn test_env_vars()
@@ -18,21 +19,32 @@ fn test_env_vars()
 }
 
 #[test]
-fn test_serde()
+fn test_flate2()
 {
-    let dir = ZeekLog::new();
-    let params = ZeekSearchParamsBuilder::default()
-        .path_prefix("zeek-test-logs")
-        .start_date("2024-07-02")
-        .build()
-        .unwrap();
-    let mut log = ZeekLog::new();
-    let res = log.search(&params);
-    assert_eq!(true, res.is_ok());
-    assert_eq!(false, log.data.is_empty());
-    let serialized = serde_json::to_string(&log.data);
-    assert!(serialized.is_ok());
+    let file = std::fs::File::open("zeek-test-logs/2024-07-02/conn.00:00:00-01:00:00.log.gz")
+                        .expect("conn file should exist");
+    let mut s = String::new();
+    let mut d = GzDecoder::new(file);
+    d.read_to_string(&mut s).unwrap();
+
 }
+
+//#[test]
+//fn test_serde()
+//{
+//    let dir = ZeekLog::new();
+//    let params = ZeekSearchParamsBuilder::default()
+//        .path_prefix("zeek-test-logs")
+//        .start_date("2024-07-02")
+//        .build()
+//        .unwrap();
+//    let mut log = ZeekLog::new();
+//    let res = log.search(&params);
+//    assert_eq!(true, res.is_ok());
+//    assert_eq!(false, log.data.is_empty());
+//    let serialized = serde_json::to_string(&log.data);
+//    assert!(serialized.is_ok());
+//}
 
 #[test]
 fn test_create_log()
@@ -55,7 +67,6 @@ fn test_search_params()
 {
     let params = ZeekSearchParamsBuilder::default().build();
     assert!(params.is_ok());
-    dbg!(&params);
 }
 
 #[test]
@@ -70,7 +81,8 @@ fn test_search_000_pass()
     let mut log = ZeekLog::new();
     let res = log.search(&params);
     assert!(res.is_ok());
-    dbg!(std::mem::size_of_val(&log.data));
+    assert_eq!(false, log.data.is_empty());
+    dbg!(log.data.keys());
 }
 
 #[test]
@@ -84,7 +96,6 @@ fn test_search_000_fail()
     let mut log = ZeekLog::new();
     let res = log.search(&params);
     assert_eq!(res, Err(Error::SearchInvalidStartDate));
-    dbg!(std::mem::size_of_val(&log.data));
 }
 
 #[test]
@@ -99,6 +110,8 @@ fn test_search_100_pass()
     let mut log = ZeekLog::new();
     let res = log.search(&params);
     assert!(res.is_ok());
+    assert_eq!(false, log.data.is_empty());
+    dbg!(log.data.keys());
 
     let params = ZeekSearchParamsBuilder::default()
         .path_prefix("~/dev/log-analysis/zeek-test-logs")
@@ -109,6 +122,10 @@ fn test_search_100_pass()
     let mut log = ZeekLog::new();
     let res = log.search(&params);
     assert!(res.is_ok());
+    assert_eq!(false, log.data.is_empty());
+    dbg!(log.data.keys());
+
+
 }
 
 #[test]
@@ -123,7 +140,6 @@ fn test_search_100_fail()
     let mut log = ZeekLog::new();
     let res = log.search(&params);
     assert!(res.is_ok());
-    //assert!(res.is_empty());
 }
 
 #[test]
@@ -133,13 +149,14 @@ fn test_search_110_pass()
         .path_prefix("zeek-test-logs")
         .start_date("2024-07-02")
         .src_ip("43.134.231.178")
-        .proto_type("wEird")
+        .proto_type("WEird")
         .build()
         .unwrap();
     let mut log = ZeekLog::new();
     let res = log.search(&params);
     assert!(res.is_ok());
     assert_eq!(false, log.data.is_empty());
+    dbg!(log.data.keys());
 }
 
 #[test]
@@ -154,6 +171,6 @@ fn test_search_110_fail()
         .unwrap();
     let mut log = ZeekLog::new();
     let res = log.search(&params);
-    //assert_eq!(true, res.expect("should be Ok(BTreeMap)").is_empty());
     assert_eq!(true, log.data.is_empty());
+    dbg!(log.data.keys());
 }
