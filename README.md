@@ -2,8 +2,6 @@
 
 Rust library designed for extracting relevant information from zeek logs.
 
-Results returned in a BTreeMap for furth processing.
-
 ## Installation
 
 `cargo add log-analysis`
