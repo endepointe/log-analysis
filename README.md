@@ -6,7 +6,7 @@ Results returned in a BTreeMap for furth processing.
 
 ## Installation
 
-cargo add log-analysis
+`cargo add log-analysis`
 
 ## Usage
 
