@@ -5,27 +5,148 @@ use crate::zeek::zeek_search_params::ZeekSearchParams;
 use crate::types::helpers::print_type_of;
 use std::path::Path;
 use std::io::{Read, Write, BufReader, BufRead};
-use std::collections::HashMap;
+use std::collections::{HashMap,HashSet};
 use std::collections::btree_map::BTreeMap;
 use flate2::read::GzDecoder;
 use serde::{Serialize, Deserialize};
+use chrono::{DateTime, Utc};
 
+type TS = String; 
+type UID = String;
+type FUID = String;
+type MD5 = String;
+type SHA1 = String;
+type SHA256 = String;
+type BYTES = usize;
+type FILETUPLE = (TS,UID,FUID,MD5,SHA1,SHA256,BYTES);
+
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Data
+{
+    ip_address: String,
+    frequency: usize,
+    connection_uids: Vec<UID>,
+    protocols: Vec<String>,
+    time_ranges: HashMap<String, u32>,
+    file_info: Vec<HashMap<String,String>>,
+    conn_state: Vec::<String>,
+    history: Vec::<String>,
+    dports: Vec<u16>,
+    country: Option<String>, //ip2loc
+    city: Option<String>, // ip2loc
+    isp: Option<String>, // ip2loc
+    malicious: bool, // virustotal?
+    bytes_transferred: u64,
+    related_ips: Vec<String>,
+}
+impl Data
+{
+    pub fn new(ip_address: String) -> Self 
+    {
+        Data {
+            ip_address,
+            frequency: 0,
+            connection_uids: Vec::<UID>::new(),
+            protocols: Vec::<String>::new(),
+            time_ranges: HashMap::<String, u32>::new(),
+            file_info: Vec::<HashMap::<String,String>>::new(),
+            conn_state: Vec::<String>::new(),
+            history: Vec::<String>::new(),
+            dports: Vec::<u16>::new(),
+            country: None,
+            city: None, 
+            isp: None, 
+            malicious: true,
+            bytes_transferred: 0,
+            related_ips: Vec::<String>::new(),
+        }
+    }
+    fn _increment_frequency(&mut self) 
+    {
+        self.frequency = self.frequency + 1;
+    }
+    fn insert_protocol(&mut self, val: String)
+    {
+        if !self.protocols.contains(&val)
+        {
+            self.protocols.push(val);
+        }
+    }
+    fn insert_connection_uid(&mut self, val: UID)
+    {
+        if !self.connection_uids.contains(&val)
+        {
+            self.connection_uids.push(val);
+        }
+    }
+    fn insert_file_info(&mut self, t: TS, u: UID, f: FUID, m: MD5, s1: SHA1, s2: SHA256, b: BYTES)
+    {
+        let mut map = HashMap::<String,String>::new();
+        map.insert("ts".to_string(), t.to_string());
+        map.insert("uid".to_string(), u.to_string());
+        map.insert("fuid".to_string(), f.to_string());
+        map.insert("md5".to_string(), m.to_string());
+        map.insert("sha1".to_string(), s1.to_string());
+        map.insert("sha256".to_string(), s2.to_string());
+        map.insert("total_size".to_string(), b.to_string());
+        self.file_info.push(map);
+    }
+    fn insert_time_range(&mut self, val: String)
+    {
+        if let Some(time) = self.time_ranges.get_mut(&val)
+        {
+            *time = *time + 1;
+        } else 
+        {
+            self.time_ranges.insert(val, 1);
+        }
+        self._increment_frequency();
+        assert_eq!(&self.time_ranges.len() <= &self.frequency, true);
+    }
+    fn insert_conn_state(&mut self, val: String)
+    {
+        if !self.conn_state.contains(&val) 
+        {
+            self.conn_state.push(val);
+        }
+    }
+    fn insert_history(&mut self, val: String)
+    {
+        if !self.history.contains(&val) 
+        {
+            self.history.push(val);
+        }
+    }
+    fn insert_dport(&mut self, val: u16)
+    {
+        self.dports.push(val);
+    }
+    fn increment_bytes_transferred(&mut self, val: u64) 
+    {
+        self.bytes_transferred = self.bytes_transferred + val;
+    }
+    fn insert_related_ip(&mut self, val: String)
+    {
+        todo!();
+    }
+}
 
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct
 ZeekLog
 {
-    pub data: LogTree,
+    _raw: LogTree,
+    pub data: HashMap<String, Data>,
 }
 impl ZeekLog
 {
     // Initializes structure to search through logs using the path_prefix/ as the
     // parent log directory.
-    //pub fn new(p: Option<&'a Path>) -> Self //Result<Self, Error>
     pub fn new() -> Self
     {
         ZeekLog {
-            data: BTreeMap::new()
+            _raw: BTreeMap::new(),
+            data: HashMap::<String, Data>::new(),
         }
     }
 
@@ -47,75 +168,84 @@ impl ZeekLog
         let mut s = String::new();
         let mut d = GzDecoder::new(file);
         let reader = BufReader::new(d);
+        let mut header_line = 0;
 
         // maybe clean up the guard clauses...later. At the very least it would make the method
         // shorter. I would also get better at building with rust. 
         for line in reader.lines() 
         {
-            if !separator_set 
+            match header_line
             {
-                let separator_line = line.as_ref();
-                let result: Vec<&str> = separator_line
-                    .expect("Should have been able to read the line.")
-                    .split(' ').collect::<Vec<&str>>();
-
-                if result[0] == "#separator"
-                {
-                    separator_set = true;
-                    let value = result[1].strip_prefix("\\x").expect("Should have a separator");
-                    let value = u8::from_str_radix(value.trim(), 16)
-                        .expect("Should have a separator character in the log file: "); 
-                    _separator = char::from(value);
-                }
-            }
-
-            if !proto_type_set
-            {
-                let proto_ref = line.as_ref();
-                let result: Vec<&str> = proto_ref.expect("proto_ref")
-                    .split(_separator).collect::<Vec<&str>>();
-                if result[0] == "#path"
-                {
-                    proto_type_set = true;
-                    proto_type.push(result[1].to_string());
-                }
-            }
-
-            if !fields_set
-            {
-                let fields_ref = line.as_ref().expect("fields_ref")
-                    .split(_separator).collect::<Vec<&str>>();
-                if fields_ref[0] == "#fields"
-                {
-                    for i in 1..fields_ref.len() 
+                0 => {
+                    let separator_line = line.as_ref();
+                    let result: Vec<&str> = separator_line
+                        .expect("Should be able to read TSV file.")
+                        .split(' ').collect::<Vec<&str>>();
+                    if header_line == 0 && result[0] == "#separator"
                     {
-                        fields.push(fields_ref[i].to_string());
-                    }
-                    fields_set = true; // enables the data insertions
+                        separator_set = true;
+                        let value = result[1].strip_prefix("\\x").expect("Should have a separator");
+                        let value = u8::from_str_radix(value.trim(), 16)
+                            .expect("Should have a separator character in the log file: "); 
+                        _separator = char::from(value);
+                    } 
                 }
-                for f in fields.iter()
-                {
-                    map.insert(f.to_string(), Vec::<String>::new());
+                4 => {
+                    let proto_ref = line.as_ref();
+                    let result: Vec<&str> = proto_ref.expect("proto_ref")
+                        .split(_separator).collect::<Vec<&str>>();
+                    if result[0] == "#path"
+                    {
+                        proto_type_set = true;
+                        proto_type.push(result[1].to_string());
+                    }
+                }
+                5 => {
+                    //open
+                }
+                6 => {
+                    let fields_ref = line.as_ref().expect("fields_ref")
+                        .split(_separator).collect::<Vec<&str>>();
+                    if fields_ref[0] == "#fields"
+                    {
+                        for i in 1..fields_ref.len() 
+                        {
+                            fields.push(fields_ref[i].to_string());
+                        }
+                        fields_set = true; // enables the data insertions
+                    }
+                    for f in fields.iter()
+                    {
+                        map.insert(f.to_string(), Vec::<String>::new());
+                    }
+                }
+                7 => {
+                    // types field. Leaving Skipping unless use case exists. 
+                }
+                8 => {
+                    let mut data: Vec<&str> = Vec::<&str>::new();
+                    data = line.as_ref().expect("values should be refd")
+                        .split(_separator).collect::<Vec<&str>>();
+                    // Load the data based on search_bits
+                    match search_bits
+                    {
+                        0 => {Self::_000(&fields, &data, map);}
+                        4 => {Self::_100(&fields, &data, map, params);}
+                        6 => {
+                            Self::_110(&fields, &data, map, params, 
+                                       ZeekProtocol::read(proto_type[0].as_str()));
+                        }
+                        _ => {}
+                    }
+                    header_line = 0;
+                }
+                _ => {
+                    // Most likely reading the rest of the log file or
+                    // it is not a TSV formatted file.
+                    // Do nothing.
                 }
             }
-
-            if fields_set
-            {
-                let data = line.as_ref().expect("values should be refd")
-                    .split(_separator).collect::<Vec<&str>>();
-
-                // Load the data based on search_bits
-                match search_bits
-                {
-                    0 => {Self::_000(&fields, &data, map);}
-                    4 => {Self::_100(&fields, &data, map, params);}
-                    6 => {
-                        Self::_110(&fields, &data, map, params, 
-                                   ZeekProtocol::read(proto_type[0].as_str()));
-                    }
-                    _ => {}
-                }
-            }
+            header_line = header_line + 1;
         }
         Ok(())
     }
@@ -128,9 +258,9 @@ impl ZeekLog
         let mut iter = std::iter::zip(fields,data);
         for (field,item) in iter
         {
-            if let Some(mapkey) = map.get_mut(field)
+            if let Some(fielditem) = map.get_mut(field)
             {
-                mapkey.push(item.to_string());
+                fielditem.push(item.to_string());
             }
         }
     }
@@ -162,7 +292,6 @@ impl ZeekLog
             params: &ZeekSearchParams,
             proto: ZeekProtocol) 
     {        
-
         if let Some(t) = &params.proto_type
         {
             if ZeekProtocol::read(&t) == proto 
@@ -173,7 +302,6 @@ impl ZeekLog
                 {
                     if let Some(mapkey) = map.get_mut(field)
                     {
-                        //dbg!(&mapkey,&item,&field, &item);
                         if *item == src_ip
                         {
                             mapkey.push(item.to_string());
@@ -187,7 +315,7 @@ impl ZeekLog
     fn _reduce(&mut self)
     {
         let mut keys_to_remove = Vec::new();
-        for (outer_key, middle_map) in self.data.iter_mut() 
+        for (outer_key, middle_map) in self._raw.iter_mut() 
         {
             let mut middle_keys_to_remove = Vec::new();
             for (middle_key, inner_map) in middle_map.iter_mut() 
@@ -220,9 +348,90 @@ impl ZeekLog
         }
         for key in keys_to_remove 
         {
-            self.data.remove(&key);
+            self._raw.remove(&key);
         }
     }
+   
+    // This should be returned as an overview for the analyst.
+    fn _create_overview(&mut self)
+    {
+        let mut map: HashMap<String, Data> = HashMap::new();
+
+        for (proto, protovalue) in &self._raw
+        {
+            //dbg!(proto);
+            for (timefield, timevalue) in protovalue.iter()
+            {
+                // Maybe there is a better way to accomplish the following so... it 
+                // may look a bit wierd here. In the inner hashmap, I need to get the 
+                // timevalue (key,val) again to extract information from after creating the
+                // Data struct. Maybe on another day I will be able to look at it from a 
+                // different angle to make this mor efficient. Until then, this is where 
+                // we are at.
+                for (field,value) in timevalue.iter()
+                {
+                    if field == "id.orig_h"
+                    {
+                        let src_ip = &value[0].to_string();
+                        if !map.contains_key(src_ip)
+                        {
+                            self.data.insert(src_ip.to_string(), Data::new(src_ip.to_string()));
+                        } 
+                        let d: &mut Data = self.data.get_mut(src_ip).unwrap();
+                        d.insert_protocol(proto.to_str().to_string());
+                        d.insert_time_range(timefield.to_string());
+                        for (key,val) in timevalue.iter() 
+                        {
+                            if key == "uid" && val[0] != "-"
+                            {
+                                d.insert_connection_uid(val[0].to_string());
+                            }
+                            if key == "fuid" && val[0] != "-"
+                            {
+                                d.insert_file_info(timevalue.get("ts").unwrap()[0].to_string(),
+                                     timevalue.get("uid").unwrap()[0].to_string(),
+                                     timevalue.get("fuid").unwrap()[0].to_string(),
+                                     timevalue.get("md5").unwrap()[0].to_string(),
+                                     timevalue.get("sha1").unwrap()[0].to_string(),
+                                     timevalue.get("sha256").unwrap()[0].to_string(),
+                                     timevalue.get("total_bytes").unwrap()[0].parse::<usize>().unwrap());
+                            }
+
+                            if key == "orig_bytes" && val[0] != "-"
+                            {
+                                d.increment_bytes_transferred(val[0].parse::<u64>()
+                                                              .expect("should be a parsable string"));
+                                d.insert_conn_state(timevalue.get("conn_state").unwrap()[0].to_string());
+                                d.insert_history(timevalue.get("history").unwrap()[0].to_string());
+                            }
+                            if proto.to_str() == "conn"
+                            {
+                                d.insert_conn_state(timevalue.get("conn_state").unwrap()[0].to_string());
+                                d.insert_history(timevalue.get("history").unwrap()[0].to_string());
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    //TODO: threading 
+    //fn _create_data(&mut self) 
+    //{
+    //    use std::sync::{Arc,Mutex};
+    //    use std::thread;
+    //    let data_map = Arc::new(Mutex::new(&self._raw));
+    //    let mut handles: Vec<thread::JoinHandle<()>> = Vec::new();
+    //    let results = Arc::new(Mutex::new(Vec::<Data>::new()));
+    //    for data in data_map.lock().unwrap().iter()
+    //    {
+    //    }
+    //    //for handle in handles
+    //    //{
+    //    //    handle.join().unwrap();
+    //    //}
+    //}
 
     pub fn search(&mut self, params: &ZeekSearchParams) -> Result<(), Error> 
     {
@@ -245,42 +454,34 @@ impl ZeekLog
             //////////////////////////////////////////////////////
             let proto = ZeekProtocol::read(p[0]);
 
-            if !self.data.contains_key(&proto) && !(proto == ZeekProtocol::NONE)
+            if !self._raw.contains_key(&proto) && !(proto == ZeekProtocol::NONE)
             {
                 // To handle post processing easier, convert the inner
                 // vector to a hashmap and return it. 
                 let mut hp = HashMap::<String, HashMap<String, Vec<String>>>::new();
                 hp.insert(p[1].to_string(), HashMap::<String, Vec::<String>>::new());
-                self.data.insert(proto.clone(), hp);
+                self._raw.insert(proto.clone(), hp);
             }
 
             // Create time range (e.g. 00-01) and use as keys to BTreeMap.
-            if let Some(value) = self.data.get_mut(&proto) 
+            if let Some(value) = self._raw.get_mut(&proto) 
             {
                 value.insert(p[1].to_string(), HashMap::<String, Vec::<String>>::new());
             }
 
             // Only pass the vector corresponding to the proto.
-            if let Some(t) = self.data.get_mut(&proto) 
+            if let Some(t) = self._raw.get_mut(&proto) 
             {
                 if let Some(g) = t.get_mut(&p[1].to_string())
                 {
                     // thread here?
                     ////////////////////////////////////////
-                    // spawn a thread for each param and arc 
-                    //let mut bits = [0; 8];
-                    //for i in 0..8 
-                    //{
-                    //    bits[7 - i] = (search >> i) & 1;
-                    //    dbg!(bits[i]);
-                    //}
-                    ///////////////////////////////////
                     let _ = Self::read(log.path().as_path(), g, search, params);
                 }
             }
         }
-        //dbg!(&self);
         Self::_reduce(self);
+        Self::_create_overview(self);
         return Ok(())
     }
 }

@@ -29,23 +29,6 @@ fn test_flate2()
 
 }
 
-//#[test]
-//fn test_serde()
-//{
-//    let dir = ZeekLog::new();
-//    let params = ZeekSearchParamsBuilder::default()
-//        .path_prefix("zeek-test-logs")
-//        .start_date("2024-07-02")
-//        .build()
-//        .unwrap();
-//    let mut log = ZeekLog::new();
-//    let res = log.search(&params);
-//    assert_eq!(true, res.is_ok());
-//    assert_eq!(false, log.data.is_empty());
-//    let serialized = serde_json::to_string(&log.data);
-//    assert!(serialized.is_ok());
-//}
-
 #[test]
 fn test_create_log()
 {
@@ -74,15 +57,17 @@ fn test_search_000_pass()
 {
     let params = ZeekSearchParamsBuilder::default()
         .path_prefix("zeek-test-logs")
-        .start_date("2024-07-02")
+        .start_date("2024-07-03")
         .build()
         .unwrap();
 
     let mut log = ZeekLog::new();
     let res = log.search(&params);
+    //dbg!(&res);
     assert!(res.is_ok());
-    assert_eq!(false, log.data.is_empty());
-    dbg!(log.data.keys());
+    //dbg!(&log.data);
+    assert_eq!(false, log.data.len() == 0);
+    //dbg!(log.data);
 }
 
 #[test]
@@ -110,8 +95,8 @@ fn test_search_100_pass()
     let mut log = ZeekLog::new();
     let res = log.search(&params);
     assert!(res.is_ok());
-    assert_eq!(false, log.data.is_empty());
-    dbg!(log.data.keys());
+    assert_eq!(false, log.data.len() == 0);
+    dbg!(log.data);
 
     let params = ZeekSearchParamsBuilder::default()
         .path_prefix("~/dev/log-analysis/zeek-test-logs")
@@ -122,10 +107,8 @@ fn test_search_100_pass()
     let mut log = ZeekLog::new();
     let res = log.search(&params);
     assert!(res.is_ok());
-    assert_eq!(false, log.data.is_empty());
-    dbg!(log.data.keys());
-
-
+    assert_eq!(false, log.data.len() == 0);
+    //dbg!(log.data);
 }
 
 #[test]
@@ -155,8 +138,8 @@ fn test_search_110_pass()
     let mut log = ZeekLog::new();
     let res = log.search(&params);
     assert!(res.is_ok());
-    assert_eq!(false, log.data.is_empty());
-    dbg!(log.data.keys());
+    assert_eq!(false, log.data.len() == 0);
+    //dbg!(log.data);
 }
 
 #[test]
@@ -171,6 +154,6 @@ fn test_search_110_fail()
         .unwrap();
     let mut log = ZeekLog::new();
     let res = log.search(&params);
-    assert_eq!(true, log.data.is_empty());
-    dbg!(log.data.keys());
+    assert_eq!(true, log.data.len() == 0);
+    //dbg!(log.data);
 }

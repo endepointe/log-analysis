@@ -72,4 +72,38 @@ impl ZeekProtocol
             _ => ZeekProtocol::NONE, // add error type instead of string
         }
     }
+    pub fn to_str(&self) -> &str 
+    {
+        match self {
+            ZeekProtocol::CONN => "conn",
+            ZeekProtocol::DNS => "dns",
+            ZeekProtocol::HTTP => "http",
+            ZeekProtocol::FILES => "files",
+            ZeekProtocol::FTP => "ftp",
+            ZeekProtocol::SSL => "ssl",
+            ZeekProtocol::X509 => "x509",
+            ZeekProtocol::SMTP => "smtp",
+            ZeekProtocol::SNMP => "snmp",
+            ZeekProtocol::SSH => "ssh",
+            ZeekProtocol::PE => "pe",
+            ZeekProtocol::DHCP => "dhcp",
+            ZeekProtocol::NTP => "ntp",
+            ZeekProtocol::SMB => "smb",
+            ZeekProtocol::IRC => "irc",
+            ZeekProtocol::RDP => "rdp",
+            ZeekProtocol::LDAP => "ldap",
+            ZeekProtocol::QUIC => "quic",
+            ZeekProtocol::TRACEROUTE => "traceroute",
+            ZeekProtocol::TUNNEL => "tunnel",
+            ZeekProtocol::DPD => "dpd",
+            ZeekProtocol::KNOWN => "known",
+            ZeekProtocol::SOFTWARE => "software",
+            ZeekProtocol::WEIRD => "weird",
+            ZeekProtocol::NOTICE => "notice",
+            ZeekProtocol::CAPTURELOSS => "capture_loss",
+            ZeekProtocol::REPORTER => "reporter",
+            ZeekProtocol::SIP => "sip",
+            ZeekProtocol::NONE => "none", 
+        }
+    }
 }

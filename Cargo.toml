@@ -17,6 +17,7 @@ default = ["ip2location"]
 ip2location = []
 
 [dependencies]
+chrono = "0.4.38"
 derive_builder = "0.20.0"
 flate2 = "1.0.31"
 serde = { version = "1.0.207", features = ["derive"] }
