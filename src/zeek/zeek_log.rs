@@ -7,6 +7,8 @@ use std::path::Path;
 use std::io::{Read, Write, BufReader, BufRead};
 use std::collections::{HashMap,HashSet};
 use std::collections::btree_map::BTreeMap;
+use std::sync::{Arc,Mutex};
+use std::thread;
 use flate2::read::GzDecoder;
 use serde::{Serialize, Deserialize};
 use chrono::{DateTime, Utc};
@@ -19,6 +21,20 @@ type SHA1 = String;
 type SHA256 = String;
 type BYTES = usize;
 type FILETUPLE = (TS,UID,FUID,MD5,SHA1,SHA256,BYTES);
+
+fn _get_ip_db() -> Vec<String>
+{
+    let mut file = std::fs::File::open("ip.db").expect("ip.db should exist already.");
+    let mut buffer = String::new();
+    file.read_to_string(&mut buffer).expect("should be able to read ip.db");
+    let mut v = Vec::<String>::new();
+    let content: Vec<_> = buffer.split('\n').collect();
+    for line in content
+    {
+        v.push(line.to_string())
+    }
+    v
+}
 
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Data
@@ -355,11 +371,14 @@ impl ZeekLog
     // This should be returned as an overview for the analyst.
     fn _create_overview(&mut self)
     {
+        let arc_raw = Arc::new(Mutex::new(&self._raw));
         let mut map: HashMap<String, Data> = HashMap::new();
+        let mut handles = Vec::<thread::JoinHandle<()>>::new();
+        let ips = _get_ip_db(); // testing purposes
+        //dbg!(arc_raw);
 
         for (proto, protovalue) in &self._raw
         {
-            //dbg!(proto);
             for (timefield, timevalue) in protovalue.iter()
             {
                 // Maybe there is a better way to accomplish the following so... it 
@@ -376,6 +395,9 @@ impl ZeekLog
                         if !map.contains_key(src_ip)
                         {
                             self.data.insert(src_ip.to_string(), Data::new(src_ip.to_string()));
+                            let handle = std::thread::spawn(move || {
+
+                            });
                         } 
                         let d: &mut Data = self.data.get_mut(src_ip).unwrap();
                         d.insert_protocol(proto.to_str().to_string());
@@ -419,8 +441,6 @@ impl ZeekLog
     //TODO: threading 
     //fn _create_data(&mut self) 
     //{
-    //    use std::sync::{Arc,Mutex};
-    //    use std::thread;
     //    let data_map = Arc::new(Mutex::new(&self._raw));
     //    let mut handles: Vec<thread::JoinHandle<()>> = Vec::new();
     //    let results = Arc::new(Mutex::new(Vec::<Data>::new()));

@@ -4,6 +4,7 @@ Cargo.lock
 **/*.rs.bk
 *.pdb
 zeek-test-logs/
+ip.db
 
 # test tls
 *.pem
@@ -13,3 +14,8 @@ flame*.svg
 perf.data*
 
 getcred.sh
+
+ip2loc.db
+ip2loc.json
+ip.db
+queryip2loc.sh

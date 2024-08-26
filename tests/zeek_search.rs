@@ -28,6 +28,47 @@ fn test_flate2()
     d.read_to_string(&mut s).unwrap();
 
 }
+#[test]
+fn _write_to_file()
+{
+
+    let path = std::path::Path::new("ip.db");
+    let mut file = std::fs::File::create(&path).expect("should be able to create the file.");
+
+    let params = ZeekSearchParamsBuilder::default()
+        .path_prefix("zeek-test-logs")
+        .start_date("2024-07-02")
+        .build()
+        .unwrap();
+
+    let mut log = ZeekLog::new();
+    let res = log.search(&params);
+    assert!(res.is_ok());
+    assert_eq!(false, log.data.len() == 0);
+    for (ip, _) in &log.data
+    {
+        writeln!(file, "{}", ip).expect("should have written ip address to file");
+    }
+
+    let params = ZeekSearchParamsBuilder::default()
+        .path_prefix("zeek-test-logs")
+        .start_date("2024-07-03")
+        .build()
+        .unwrap();
+
+    let mut log = ZeekLog::new();
+    let res = log.search(&params);
+    assert!(res.is_ok());
+    assert_eq!(false, log.data.len() == 0);
+    for (ip, _) in &log.data
+    {
+        writeln!(file, "{}", ip).expect("should have written ip address to file");
+    }
+    use std::os::unix::fs::PermissionsExt;
+    use std::fs::Permissions;
+    let permissions = Permissions::from_mode(0o444);
+    file.set_permissions(permissions).expect("should have been able to set permissions on file");
+}
 
 #[test]
 fn test_create_log()
@@ -67,7 +108,7 @@ fn test_search_000_pass()
     assert!(res.is_ok());
     //dbg!(&log.data);
     assert_eq!(false, log.data.len() == 0);
-    //dbg!(log.data);
+    //dbg!(log.data.keys());
 }
 
 #[test]
