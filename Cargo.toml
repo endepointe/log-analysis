@@ -12,13 +12,14 @@ license = "MIT"
 debug = true
 
 [features]
-default = ["ip2location"]
-
+default = []
 ip2location = []
 
 [dependencies]
 chrono = "0.4.38"
 derive_builder = "0.20.0"
 flate2 = "1.0.31"
+reqwest = { version = "0.12.7", features = ["blocking"] } 
 serde = { version = "1.0.207", features = ["derive"] }
 serde_json = "1.0.124"
+tokio = "1.39.3"

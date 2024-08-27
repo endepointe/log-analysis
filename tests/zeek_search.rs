@@ -10,12 +10,15 @@ use std::io::{Read, Write};
 use flate2::read::GzDecoder;
 
 #[test]
+#[cfg(feature = "ip2location")]
 fn test_env_vars()
 {
-    //for (key, val) in std::env::vars() 
-    //{
-    //    println!("{key} {val}");
-    //}
+    use std::env;
+    match env::var("CARGO_HOME")
+    {
+        Ok(val) => println!("found: {val}"),
+        Err(err) => println!("{err}")
+    }
 }
 
 #[test]
@@ -94,6 +97,7 @@ fn test_search_params()
 }
 
 #[test]
+#[cfg(feature = "ip2location")]
 fn test_search_000_pass()
 {
     let params = ZeekSearchParamsBuilder::default()

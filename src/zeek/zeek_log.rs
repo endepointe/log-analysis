@@ -3,6 +3,11 @@ use crate::types::types::LogTree;
 use crate::zeek::zeek_log_proto::ZeekProtocol;
 use crate::zeek::zeek_search_params::ZeekSearchParams;
 use crate::types::helpers::print_type_of;
+
+#[cfg(feature = "ip2location")]
+use crate::ip2location::ip2location;
+use crate::ip2location::{request};
+
 use std::path::Path;
 use std::io::{Read, Write, BufReader, BufRead};
 use std::collections::{HashMap,HashSet};
@@ -12,6 +17,7 @@ use std::thread;
 use flate2::read::GzDecoder;
 use serde::{Serialize, Deserialize};
 use chrono::{DateTime, Utc};
+
 
 type TS = String; 
 type UID = String;
@@ -36,7 +42,7 @@ fn _get_ip_db() -> Vec<String>
     v
 }
 
-#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize,Clone)]
 pub struct Data
 {
     ip_address: String,
@@ -51,6 +57,8 @@ pub struct Data
     country: Option<String>, //ip2loc
     city: Option<String>, // ip2loc
     isp: Option<String>, // ip2loc
+    lat: Option<String>,
+    lon: Option<String>,
     malicious: bool, // virustotal?
     bytes_transferred: u64,
     related_ips: Vec<String>,
@@ -72,6 +80,8 @@ impl Data
             country: None,
             city: None, 
             isp: None, 
+            lat: None,
+            lon: None,
             malicious: true,
             bytes_transferred: 0,
             related_ips: Vec::<String>::new(),
@@ -133,6 +143,39 @@ impl Data
             self.history.push(val);
         }
     }
+
+    pub fn get_city(&self) -> &Option<String>
+    {
+        &self.city
+    }
+    fn set_city(&mut self, val: String)
+    {
+        self.city = Some(val);
+    }
+    //fn get_country(&self) -> Option<String>
+    //{
+    //    self.country
+    //}
+    //fn set_country(&mut self, val: String)
+    //{
+    //    self.country = Some(val);
+    //}
+    //fn get_lat(&self) ->  Option<f32> 
+    //{
+    //    &self.lat
+    //}
+    //fn set_lat(&mut self, val: f32)
+    //{
+    //    self.lat = Some(val);
+    //}
+    //fn get_lon(&self) -> Option<&f32>
+    //{
+    //    &self.lon
+    //}
+    //fn set_lon(&mut self, val: f32)
+    //{
+    //    self.lon = Some(val);
+    //}
     fn insert_dport(&mut self, val: u16)
     {
         self.dports.push(val);
@@ -500,9 +543,54 @@ impl ZeekLog
                 }
             }
         }
+
+    //TODO: threading 
+    //fn _create_data(&mut self) 
+    //{
+    //    let data_map = Arc::new(Mutex::new(&self._raw));
+    //    let mut handles: Vec<thread::JoinHandle<()>> = Vec::new();
+    //    let results = Arc::new(Mutex::new(Vec::<Data>::new()));
+    //    for data in data_map.lock().unwrap().iter()
+    //    {
+    //    }
+    //    //for handle in handles
+    //    //{
+    //    //    handle.join().unwrap();
+    //    //}
+    //}
         Self::_reduce(self);
         Self::_create_overview(self);
+        if cfg!(feature = "ip2location") 
+        {
+            let mut count = 0;
+            let data = self.data.clone();
+            let mut arc_data = Arc::new(Mutex::new(data));
+            //print_type_of(&arc_data);
+            let mut handles = Vec::<thread::JoinHandle<()>>::new();
+            for (ip,val) in arc_data.lock().unwrap().iter()
+            {
+                if count > 3
+                {
+                    break;
+                }
+                count = count + 1;
+                let client = reqwest::blocking::Client::new();
+                let mut cloned_val = val.clone();//Arc::clone(&val);
+                let handle = thread::spawn(move || {
+                    //let locked_val = cloned_val.lock().unwrap();
+                    //dbg!(cloned_val);
+                    let res = request(&mut cloned_val);
+                    dbg!(res);
+                });
+                handles.push(handle);
+            }
+            for handle in handles
+            {
+                handle.join();
+            }
+        } 
         return Ok(())
     }
+
 }
 
