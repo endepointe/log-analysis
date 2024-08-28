@@ -112,7 +112,7 @@ fn test_search_000_pass()
     assert!(res.is_ok());
     //dbg!(&log.data);
     assert_eq!(false, log.data.len() == 0);
-    //dbg!(log.data.keys());
+    //dbg!(log.data);
 }
 
 #[test]

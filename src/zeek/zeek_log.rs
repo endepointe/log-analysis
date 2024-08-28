@@ -4,9 +4,10 @@ use crate::zeek::zeek_log_proto::ZeekProtocol;
 use crate::zeek::zeek_search_params::ZeekSearchParams;
 use crate::types::helpers::print_type_of;
 
-#[cfg(feature = "ip2location")]
-use crate::ip2location::ip2location;
-use crate::ip2location::{request};
+//#[cfg(feature = "ip2location")]
+//use crate::ip2location::ip2location;
+
+use crate::ip2location::{request,IP2LocationResponse};
 
 use std::path::Path;
 use std::io::{Read, Write, BufReader, BufRead};
@@ -42,7 +43,7 @@ fn _get_ip_db() -> Vec<String>
     v
 }
 
-#[derive(Debug, PartialEq, Eq, Serialize, Deserialize,Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Data
 {
     ip_address: String,
@@ -54,11 +55,7 @@ pub struct Data
     conn_state: Vec::<String>,
     history: Vec::<String>,
     dports: Vec<u16>,
-    country: Option<String>, //ip2loc
-    city: Option<String>, // ip2loc
-    isp: Option<String>, // ip2loc
-    lat: Option<String>,
-    lon: Option<String>,
+    ip2location: Option<IP2LocationResponse>,
     malicious: bool, // virustotal?
     bytes_transferred: u64,
     related_ips: Vec<String>,
@@ -77,35 +74,43 @@ impl Data
             conn_state: Vec::<String>::new(),
             history: Vec::<String>::new(),
             dports: Vec::<u16>::new(),
-            country: None,
-            city: None, 
-            isp: None, 
-            lat: None,
-            lon: None,
+            ip2location: None,
             malicious: true,
             bytes_transferred: 0,
             related_ips: Vec::<String>::new(),
         }
     }
+    pub fn get_ip_address(&self) -> &String
+    {
+        &self.ip_address
+    }
     fn _increment_frequency(&mut self) 
     {
         self.frequency = self.frequency + 1;
     }
-    fn insert_protocol(&mut self, val: String)
+    pub fn set_ip2location_data(&mut self, val: Option<IP2LocationResponse>)
+    {
+        self.ip2location = val;
+    }
+    pub fn get_ip2location_data(&self) -> &Option<IP2LocationResponse>
+    {
+        &self.ip2location
+    }
+    fn set_protocol(&mut self, val: String)
     {
         if !self.protocols.contains(&val)
         {
             self.protocols.push(val);
         }
     }
-    fn insert_connection_uid(&mut self, val: UID)
+    fn set_connection_uid(&mut self, val: UID)
     {
         if !self.connection_uids.contains(&val)
         {
             self.connection_uids.push(val);
         }
     }
-    fn insert_file_info(&mut self, t: TS, u: UID, f: FUID, m: MD5, s1: SHA1, s2: SHA256, b: BYTES)
+    fn set_file_info(&mut self, t: TS, u: UID, f: FUID, m: MD5, s1: SHA1, s2: SHA256, b: BYTES)
     {
         let mut map = HashMap::<String,String>::new();
         map.insert("ts".to_string(), t.to_string());
@@ -117,7 +122,7 @@ impl Data
         map.insert("total_size".to_string(), b.to_string());
         self.file_info.push(map);
     }
-    fn insert_time_range(&mut self, val: String)
+    fn set_time_range(&mut self, val: String)
     {
         if let Some(time) = self.time_ranges.get_mut(&val)
         {
@@ -129,14 +134,14 @@ impl Data
         self._increment_frequency();
         assert_eq!(&self.time_ranges.len() <= &self.frequency, true);
     }
-    fn insert_conn_state(&mut self, val: String)
+    fn set_conn_state(&mut self, val: String)
     {
         if !self.conn_state.contains(&val) 
         {
             self.conn_state.push(val);
         }
     }
-    fn insert_history(&mut self, val: String)
+    fn set_history(&mut self, val: String)
     {
         if !self.history.contains(&val) 
         {
@@ -144,39 +149,7 @@ impl Data
         }
     }
 
-    pub fn get_city(&self) -> &Option<String>
-    {
-        &self.city
-    }
-    fn set_city(&mut self, val: String)
-    {
-        self.city = Some(val);
-    }
-    //fn get_country(&self) -> Option<String>
-    //{
-    //    self.country
-    //}
-    //fn set_country(&mut self, val: String)
-    //{
-    //    self.country = Some(val);
-    //}
-    //fn get_lat(&self) ->  Option<f32> 
-    //{
-    //    &self.lat
-    //}
-    //fn set_lat(&mut self, val: f32)
-    //{
-    //    self.lat = Some(val);
-    //}
-    //fn get_lon(&self) -> Option<&f32>
-    //{
-    //    &self.lon
-    //}
-    //fn set_lon(&mut self, val: f32)
-    //{
-    //    self.lon = Some(val);
-    //}
-    fn insert_dport(&mut self, val: u16)
+    fn set_dport(&mut self, val: u16)
     {
         self.dports.push(val);
     }
@@ -184,13 +157,13 @@ impl Data
     {
         self.bytes_transferred = self.bytes_transferred + val;
     }
-    fn insert_related_ip(&mut self, val: String)
+    fn set_related_ip(&mut self, val: String)
     {
         todo!();
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct
 ZeekLog
 {
@@ -443,17 +416,17 @@ impl ZeekLog
                             });
                         } 
                         let d: &mut Data = self.data.get_mut(src_ip).unwrap();
-                        d.insert_protocol(proto.to_str().to_string());
-                        d.insert_time_range(timefield.to_string());
+                        d.set_protocol(proto.to_str().to_string());
+                        d.set_time_range(timefield.to_string());
                         for (key,val) in timevalue.iter() 
                         {
                             if key == "uid" && val[0] != "-"
                             {
-                                d.insert_connection_uid(val[0].to_string());
+                                d.set_connection_uid(val[0].to_string());
                             }
                             if key == "fuid" && val[0] != "-"
                             {
-                                d.insert_file_info(timevalue.get("ts").unwrap()[0].to_string(),
+                                d.set_file_info(timevalue.get("ts").unwrap()[0].to_string(),
                                      timevalue.get("uid").unwrap()[0].to_string(),
                                      timevalue.get("fuid").unwrap()[0].to_string(),
                                      timevalue.get("md5").unwrap()[0].to_string(),
@@ -466,13 +439,13 @@ impl ZeekLog
                             {
                                 d.increment_bytes_transferred(val[0].parse::<u64>()
                                                               .expect("should be a parsable string"));
-                                d.insert_conn_state(timevalue.get("conn_state").unwrap()[0].to_string());
-                                d.insert_history(timevalue.get("history").unwrap()[0].to_string());
+                                d.set_conn_state(timevalue.get("conn_state").unwrap()[0].to_string());
+                                d.set_history(timevalue.get("history").unwrap()[0].to_string());
                             }
                             if proto.to_str() == "conn"
                             {
-                                d.insert_conn_state(timevalue.get("conn_state").unwrap()[0].to_string());
-                                d.insert_history(timevalue.get("history").unwrap()[0].to_string());
+                                d.set_conn_state(timevalue.get("conn_state").unwrap()[0].to_string());
+                                d.set_history(timevalue.get("history").unwrap()[0].to_string());
                             }
                         }
                     }
@@ -544,20 +517,6 @@ impl ZeekLog
             }
         }
 
-    //TODO: threading 
-    //fn _create_data(&mut self) 
-    //{
-    //    let data_map = Arc::new(Mutex::new(&self._raw));
-    //    let mut handles: Vec<thread::JoinHandle<()>> = Vec::new();
-    //    let results = Arc::new(Mutex::new(Vec::<Data>::new()));
-    //    for data in data_map.lock().unwrap().iter()
-    //    {
-    //    }
-    //    //for handle in handles
-    //    //{
-    //    //    handle.join().unwrap();
-    //    //}
-    //}
         Self::_reduce(self);
         Self::_create_overview(self);
         if cfg!(feature = "ip2location") 
@@ -565,22 +524,31 @@ impl ZeekLog
             let mut count = 0;
             let data = self.data.clone();
             let mut arc_data = Arc::new(Mutex::new(data));
-            //print_type_of(&arc_data);
+            let arc_data_clone = Arc::clone(&arc_data);
             let mut handles = Vec::<thread::JoinHandle<()>>::new();
-            for (ip,val) in arc_data.lock().unwrap().iter()
+            for (ip,val) in arc_data_clone.lock().unwrap().clone().into_iter()
             {
-                if count > 3
+                if count > 0
                 {
                     break;
                 }
                 count = count + 1;
                 let client = reqwest::blocking::Client::new();
-                let mut cloned_val = val.clone();//Arc::clone(&val);
+                let ip_val = Arc::new(Mutex::new(ip));
+                let arc_val = Arc::new(Mutex::new(val));
                 let handle = thread::spawn(move || {
-                    //let locked_val = cloned_val.lock().unwrap();
-                    //dbg!(cloned_val);
-                    let res = request(&mut cloned_val);
-                    dbg!(res);
+                    let mut ipres = Arc::new(Mutex::new(IP2LocationResponse::new()));
+                    let mut bound_data = arc_val.lock().unwrap();
+                    let a = request(&bound_data.get_ip_address());
+                    if let Ok(res) = a
+                    {
+                        let mut b = ipres.lock().unwrap();
+                        let res = res.as_str();
+                        b.create(&res);
+                        let b_clone = b.clone();
+                        bound_data.set_ip2location_data(Some(b_clone));
+                    }
+                    dbg!(&bound_data);
                 });
                 handles.push(handle);
             }
@@ -589,6 +557,7 @@ impl ZeekLog
                 handle.join();
             }
         } 
+        dbg!(&self);
         return Ok(())
     }
 
