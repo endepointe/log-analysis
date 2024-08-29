@@ -519,36 +519,42 @@ impl ZeekLog
 
         Self::_reduce(self);
         Self::_create_overview(self);
+
         if cfg!(feature = "ip2location") 
         {
             let mut count = 0;
-            let data = self.data.clone();
-            let mut arc_data = Arc::new(Mutex::new(data));
-            let arc_data_clone = Arc::clone(&arc_data);
+            let arc_data = Arc::new(Mutex::new(self.data.clone()));
             let mut handles = Vec::<thread::JoinHandle<()>>::new();
-            for (ip,val) in arc_data_clone.lock().unwrap().clone().into_iter()
+
+            for (ip,val) in arc_data.lock().unwrap().iter_mut()
             {
-                if count > 0
-                {
-                    break;
-                }
-                count = count + 1;
-                let client = reqwest::blocking::Client::new();
-                let ip_val = Arc::new(Mutex::new(ip));
-                let arc_val = Arc::new(Mutex::new(val));
+                //////////////////////////////////////////////////////////////////////
+                dbg!("Consider setting up the ip2loc.json file to save api queries.");
+                dbg!("Otherwise, this will work with live data, jsut omit the ip2location feature and the LOCAL_JSON_DB environment variable.");
+                std::process::exit(1);
+                //////////////////////
+
+                let ip_key = ip.clone();
+                let arc_data_clone = Arc::clone(&arc_data);
+
                 let handle = thread::spawn(move || {
-                    let mut ipres = Arc::new(Mutex::new(IP2LocationResponse::new()));
-                    let mut bound_data = arc_val.lock().unwrap();
-                    let a = request(&bound_data.get_ip_address());
-                    if let Ok(res) = a
+                    let mut arc_ip2locresponse = Arc::new(Mutex::new(IP2LocationResponse::new()));
                     {
-                        let mut b = ipres.lock().unwrap();
-                        let res = res.as_str();
-                        b.create(&res);
-                        let b_clone = b.clone();
-                        bound_data.set_ip2location_data(Some(b_clone));
+                        let mut bound_arc_data = arc_data_clone.lock().unwrap();
+                        if let Some(entry) = bound_arc_data.get_mut(&ip_key)
+                        {
+                            let ip_addr = request(&entry.get_ip_address());
+                            if let Ok(addr) = ip_addr
+                            {
+                                let mut locked_ip2locresponse = arc_ip2locresponse.lock().unwrap();
+                                let addr = addr.as_str();
+                                let addr = addr.replace(' ',"");
+                                locked_ip2locresponse.create(&addr);
+                                let res_clone = locked_ip2locresponse.clone();
+                                entry.set_ip2location_data(Some(res_clone));
+                            }
+                        }
                     }
-                    dbg!(&bound_data);
                 });
                 handles.push(handle);
             }
@@ -556,8 +562,9 @@ impl ZeekLog
             {
                 handle.join();
             }
+            self.data = Arc::try_unwrap(arc_data).unwrap().into_inner().unwrap();
         } 
-        dbg!(&self);
+
         return Ok(())
     }
 

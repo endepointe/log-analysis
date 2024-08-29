@@ -98,6 +98,24 @@ fn test_search_params()
 
 #[test]
 #[cfg(feature = "ip2location")]
+fn test_search_000_pass_ip2location()
+{
+    let params = ZeekSearchParamsBuilder::default()
+        .path_prefix("zeek-test-logs")
+        .start_date("2024-07-03")
+        .build()
+        .unwrap();
+
+    let mut log = ZeekLog::new();
+    let res = log.search(&params);
+    //dbg!(&res);
+    assert!(res.is_ok());
+    //dbg!(&log.data);
+    assert_eq!(false, log.data.len() == 0);
+    dbg!(log.data);
+}
+
+#[test]
 fn test_search_000_pass()
 {
     let params = ZeekSearchParamsBuilder::default()
@@ -112,7 +130,7 @@ fn test_search_000_pass()
     assert!(res.is_ok());
     //dbg!(&log.data);
     assert_eq!(false, log.data.len() == 0);
-    //dbg!(log.data);
+    dbg!(log.data.keys());
 }
 
 #[test]

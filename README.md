@@ -6,7 +6,7 @@ Rust library designed for extracting relevant information from zeek logs.
 
 `cargo add log-analysis`
 
-## Usage
+## Usage (See TEsTing)
 
 Return an overview of that day:
 ```rust
@@ -59,9 +59,24 @@ assert_eq!(false, log.data.is_empty())
 let serialized = serde_json::to_string(&log.data);
 assert!(serialized.is_ok());
 ```
-## Testing
+## TEsTing
 
-Testing is straightforward. Tests located in tests/. Test-case addtions welcomed in PRs.
+While testing is straightforward, there are a few conditions that need to be met during development to save ip2location queries. 
+
+You will want to create two files: `ip2loc.json` and a directory that is the parent directory to the days of existing zeek logs which are in YYYY-MM-DD format.
+
+Create an account on `https://www.ip2location.io/` and use the `_write_to_file` test to create the `ip.db` file. Once created, create the `ip2loc.json` file using: `jq . ip.db > ip2loc.json`.
+
+Add your ip2location api key and the LOCAL_JSON_DB env variables to `$CARGO_HOME/config.toml`.
+
+At this point, you should be able to run the following test: 
+
+`cargo test test_search_000_pass_ip2location --features ip2location -- --nocapture`
+
+The setup and testing will improve, bear with me. If you run into any issues, please submit an issue. I am here to help.
+
+Tests located in tests/. Test-case addtions welcomed in PRs.
+
 
 ### Performance
 ```bash

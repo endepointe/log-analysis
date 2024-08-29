@@ -94,7 +94,7 @@ impl IP2LocationResponse
     }
     pub fn create(&mut self, data: &str)
     {
-        if let Some(data) = data.strip_prefix("{") 
+        if let Some(data) = data.strip_prefix("{")
         {
             if let Some(data) = data.strip_suffix("}")
             {
@@ -102,6 +102,7 @@ impl IP2LocationResponse
                 for prop in data.iter()
                 {
                     let item = &prop.split(':').collect::<Vec<&str>>();
+                    dbg!(&item);
                     match item[0].trim_matches('"')
                     {
                         "ip" => {self.set_ip(String::from(item[1].trim_matches('"')));},
@@ -124,18 +125,55 @@ impl IP2LocationResponse
     }
 }
 
+// For now, the local db will remain during development. Eventually, a database
+// will exist to retrieve known IP addresses and store new log dates. This library 
+// is will primarily function as a custom solution that takes care of retrieving logs,
+// populating a database, returning relevant summaries for the client.
 pub fn request(ip_addr: &String) -> Result<String, String>
 {
-    let api_key = std::env::var("IP2LOCATION_API_KEY")
-        .expect("add IP2LOCATION_API_KEY to $CARGO_HOME/config.toml");
-    let url = format!("https://api.ip2location.io/?key={}&ip={}&format=json",api_key, ip_addr.as_str());
-    let client = Client::new();
-    let b = client.get(url).send();
-    dbg!(&b);
-    if let Ok(res) = b
+    let local_json_db = std::env::var("LOCAL_JSON_DB").unwrap();
+    let local_json_db = local_json_db.as_str();
+    if local_json_db == "ip2loc.json"
     {
-        let res = res.text().unwrap();
-        return Ok(res);
+        use std::io::BufRead;
+        let file = std::fs::File::open(local_json_db).expect("local json db should exist"); 
+        let mut buffer = String::new();
+        let mut reader = std::io::BufReader::new(&file);
+        let mut res = String::new();
+        let mut found: bool = false;
+        let mut count = 0;
+        let mut lines_iter = reader.lines().map(|line| line.unwrap());
+        while let Some(line) = lines_iter.next()
+        {
+            if line.contains(ip_addr.as_str())
+            {
+                res.push_str("{");
+                res.push_str(&line);
+                while count < 11 // 12 items expected in the free tier ip2location response.
+                {
+                    let line = lines_iter.next().unwrap();
+                    let line = line.replace('\t',"").replace('\r',"")
+                        .replace('\n',"").replace(' ',"");
+                    res.push_str(&line);
+                    count = count + 1;
+                }
+                res.push_str("}");
+                return Ok(res);
+            }
+        }
+    } 
+    else
+    {
+        let api_key = std::env::var("IP2LOCATION_API_KEY")
+            .expect("add IP2LOCATION_API_KEY to $CARGO_HOME/config.toml");
+        let url = format!("https://api.ip2location.io/?key={}&ip={}&format=json",api_key, ip_addr.as_str());
+        let client = Client::new();
+        let b = client.get(url).send();
+        if let Ok(res) = b
+        {
+            let res = res.text().unwrap();
+            return Ok(res);
+        }
     }
     Err("create an error for this at some point".to_string())
 }
