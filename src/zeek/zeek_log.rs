@@ -390,8 +390,6 @@ impl ZeekLog
         let arc_raw = Arc::new(Mutex::new(&self._raw));
         let mut map: HashMap<String, Data> = HashMap::new();
         let mut handles = Vec::<thread::JoinHandle<()>>::new();
-        let ips = _get_ip_db(); // testing purposes
-        //dbg!(arc_raw);
 
         for (proto, protovalue) in &self._raw
         {

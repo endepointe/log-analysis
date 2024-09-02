@@ -4,7 +4,7 @@ categories = ["filesystem"]
 description = "A zeek log analysis library implemented in Rust"
 name = "log-analysis"
 repository = "https://github.com/endepointe/log-analysis"
-version = "0.1.57"
+version = "0.1.571"
 edition = "2021"
 license = "MIT"
 
