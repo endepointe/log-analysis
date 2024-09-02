@@ -17,8 +17,11 @@ ip2location = []
 
 [dependencies]
 chrono = "0.4.38"
+color-eyre = "0.6.3"
+crossterm = "0.28.1"
 derive_builder = "0.20.0"
 flate2 = "1.0.31"
+ratatui = "0.28.1"
 reqwest = { version = "0.12.7", features = ["blocking"] } 
 serde = { version = "1.0.207", features = ["derive"] }
 serde_json = "1.0.124"
