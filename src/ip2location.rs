@@ -1,4 +1,3 @@
-pub mod ip2location;
 use reqwest::blocking::Client;
 use std::error::Error;
 use std::sync::{Arc,Mutex};

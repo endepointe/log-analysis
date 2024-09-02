@@ -529,9 +529,9 @@ impl ZeekLog
             for (ip,val) in arc_data.lock().unwrap().iter_mut()
             {
                 //////////////////////////////////////////////////////////////////////
-                dbg!("Consider setting up the ip2loc.json file to save api queries.");
-                dbg!("Otherwise, this will work with live data, jsut omit the ip2location feature and the LOCAL_JSON_DB environment variable.");
-                std::process::exit(1);
+                //dbg!("Consider setting up the ip2loc.json file to save api queries.");
+                //dbg!("Otherwise, this will work with live data, jsut omit the ip2location feature and the LOCAL_JSON_DB environment variable.");
+                //std::process::exit(1);
                 //////////////////////
 
                 let ip_key = ip.clone();
