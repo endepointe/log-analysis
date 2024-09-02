@@ -22,10 +22,8 @@ Return an overview of that day:
 //    conn_state: Vec::<String>,
 //    history: Vec::<String>,
 //    dports: Vec<u16>,
-//    country: Option<String>, //ip2loc
-//    city: Option<String>, // ip2loc
-//    isp: Option<String>, // ip2loc
-//    malicious: bool, // virustotal?
+//    ip2location: Option<IP2LocationResponse>,
+//    malicious: bool, // virustotal
 //    bytes_transferred: u64,
 //    related_ips: Vec<String>,
 //}
@@ -39,8 +37,6 @@ let mut log = ZeekLog::new();
 let res = log.search(&params); // Ok(())
 assert_eq!(true, res.is_ok));
 assert_eq!(false, log.data.is_empty())
-let serialized = serde_json::to_string(&log.data);
-assert!(serialized.is_ok());
 ```
 
 Return specific data(fails tests, issue exists):
@@ -56,8 +52,6 @@ let mut log = ZeekLog::new();
 let res = log.search(&params); // Ok(())
 assert_eq!(true, res.is_ok));
 assert_eq!(false, log.data.is_empty())
-let serialized = serde_json::to_string(&log.data);
-assert!(serialized.is_ok());
 ```
 ## TEsTing
 
