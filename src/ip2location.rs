@@ -43,54 +43,97 @@ impl IP2LocationResponse
         }
     }
 
-    fn set_ip(&mut self, val: String) 
-    {
-        self.ip = Some(val);
-    }
+    fn set_ip(&mut self, val: String) {self.ip = Some(val);}
+    pub fn get_ip(&self) -> &Option<String> { &self.ip }
     fn set_country_code(&mut self, val: String) 
     {
         self.country_code= Some(val);
+    }
+    pub fn get_country_code(&self) -> &Option<String>
+    {
+        &self.country_code
     }
     fn set_country_name(&mut self, val: String) 
     {
         self.country_name = Some(val);
     }
+    pub fn get_country_name(&self) -> &Option<String>
+    {
+        &self.country_name
+    }
     fn set_region_name(&mut self, val: String) 
     {
         self.region_name = Some(val);
+    }
+    pub fn get_region_name(&self) -> &Option<String>
+    {
+        &self.region_name
     }
     fn set_city_name(&mut self, val: String) 
     {
         self.city_name = Some(val);
     }
+    pub fn get_city_name(&self) -> &Option<String>
+    {
+        &self.city_name
+    }
     fn set_latitude(&mut self, val: String) 
     {
         self.latitude = Some(val);
+    }
+    pub fn get_latitude(&self) -> &Option<String>
+    {
+        &self.latitude
     }
     fn set_longitude(&mut self, val: String) 
     {
         self.longitude = Some(val);
     }
+    pub fn get_longitude(&self) -> &Option<String>
+    {
+        &self.longitude
+    }
     fn set_zip_code(&mut self, val: String) 
     {
         self.zip_code = Some(val);
+    }
+    pub fn get_zip_code(&self) -> &Option<String>
+    {
+        &self.zip_code
     }
     fn set_time_zone(&mut self, val: String) 
     {
         self.time_zone = Some(val);
     }
+    pub fn get_time_zone(&self) -> &Option<String>
+    {
+        &self.time_zone
+    }
     fn set_auto_system_num(&mut self, val: String) 
     {
         self.auto_system_num = Some(val);
+    }
+    pub fn get_auto_system_num(&self) -> &Option<String>
+    {
+        &self.auto_system_num
     }
     fn set_auto_system_name(&mut self, val: String) 
     {
         self.auto_system_name = Some(val);
     }
+    pub fn get_auto_system_name(&self) -> &Option<String>
+    {
+        &self.auto_system_name
+    }
     fn set_is_proxy(&mut self, val: String) 
     {
         self.is_proxy = Some(val);
     }
+    pub fn get_is_proxy(&self) -> &Option<String>
+    {
+        &self.is_proxy
+    }
+
     pub fn create(&mut self, data: &str)
     {
         if let Some(data) = data.strip_prefix("{")

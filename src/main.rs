@@ -8,6 +8,7 @@ use log_analysis::{
 };
 use std::io;
 use ratatui::prelude::*;
+use ratatui::widgets::*;
 use ratatui::{
     layout::{Constraint, Direction, Layout},
     crossterm::event::{self, KeyCode, KeyEventKind},
@@ -40,9 +41,12 @@ run(mut terminal: DefaultTerminal) -> io::Result<()>
     assert_eq!(false, log.data.len() == 0);
 
     let mut app_state = ListState::default();
+    let rows = [Row::new(vec!["cell1", "cell2", "cell3"])];
+    let widths = [Constraint::Length(5),Constraint::Length(5),Constraint::Length(10)];
 
     let mut index = 0;
     let mut ip_list = Vec::<String>::new();
+
     for ip in log.data.keys()
     {
         ip_list.push(ip.to_string());
@@ -72,13 +76,55 @@ run(mut terminal: DefaultTerminal) -> io::Result<()>
 
             frame.render_stateful_widget(ip_keys, layout[0], &mut app_state);
 
+            let right = Layout::default()
+                .direction(Direction::Vertical)
+                .constraints([Constraint::Percentage(60), Constraint::Percentage(40)].as_ref())
+                .split(layout[1]);
+
+            let bottom = Layout::default()
+                .direction(Direction::Horizontal)
+                .constraints([Constraint::Percentage(40), Constraint::Percentage(60)].as_ref())
+                .split(right[1]);
+                       
             if let Some(ip) = ip_list.get(index)
             {
                 if let Some(data) = log.data.get(ip) 
-                {
-                    let data_displayed = Paragraph::new(format!("{:#?}", data))
-                        .block(Block::default().borders(Borders::ALL).title("Data Response"));
-                    frame.render_widget(data_displayed, layout[1]);
+                {                     
+
+                    let main_data = format!(
+                        "IP Address: {}\nFrequency: {}\nConnection UIDs: {:?}\nProtocols: {:?}\nConnection State: {:?}\nHistory: {:?}\nDports: {:?}\nMalicious: todo \nBytes Transferred: {}\nRelated IPs: todo",
+                        data.get_ip_address(),
+                        data.get_frequency(),
+                        data.get_connection_uids(),
+                        data.get_protocols(),
+                        data.get_conn_state(),
+                        data.get_history(),
+                        data.get_dports(),
+                        //data.get_malicious(),
+                        data.get_bytes_transferred(),
+                        //data.get_related_ips()
+                    );
+                    let main_data_para = Paragraph::new(main_data)
+                        .block(Block::default().borders(Borders::ALL).title("General Data"));
+                    frame.render_widget(main_data_para, right[0]);
+
+                    let ip2location_data = match data.get_ip2location_data()
+                    {
+                        Some(data) => format!("ip: {:?}\ncountry_code: {:?}\nregion_name: {:?}\ncity_name: {:?}\nlatitude: {:?}\nlongitude: {:?}\nzip_code: {:?}\ntime_zone: {:?}\nauto_system_num: {:?}\nauto_system_name: {:?}\nis_proxy: {:?}", data.get_ip(), data.get_country_code(),data.get_region_name(),data.get_city_name(), data.get_latitude(), data.get_longitude(),data.get_zip_code(),data.get_time_zone(),data.get_auto_system_num(),data.get_auto_system_name(),data.get_is_proxy()),
+                        None => "none".to_string(),
+                    };
+                    let ip2location_para = Paragraph::new(ip2location_data)
+                        .block(Block::default().borders(Borders::ALL).title("IP2Location Data"));
+                    frame.render_widget(ip2location_para, bottom[0]);
+                    
+                    let filehash_data = data.get_file_info().iter()
+                        .map(|file| format!("{:?}", file))
+                        .collect::<Vec<String>>()
+                        .join("\n");
+                    // this needs to be formatted. boring, work but needs to be done
+                    let filehash_para = Paragraph::new(filehash_data)
+                        .block(Block::default().borders(Borders::ALL).title("File Hash Data"));
+                    frame.render_widget(filehash_para, bottom[1]);
                 }
             }
         })?;

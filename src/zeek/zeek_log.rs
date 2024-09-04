@@ -88,6 +88,10 @@ impl Data
     {
         self.frequency = self.frequency + 1;
     }
+    pub fn get_frequency(&self) -> usize
+    {
+        self.frequency
+    }
     pub fn set_ip2location_data(&mut self, val: Option<IP2LocationResponse>)
     {
         self.ip2location = val;
@@ -103,12 +107,20 @@ impl Data
             self.protocols.push(val);
         }
     }
+    pub fn get_protocols(&self) -> &Vec<String>
+    {
+        &self.protocols
+    }
     fn set_connection_uid(&mut self, val: UID)
     {
         if !self.connection_uids.contains(&val)
         {
             self.connection_uids.push(val);
         }
+    }
+    pub fn get_connection_uids(&self) -> &Vec<String>
+    {
+        &self.connection_uids
     }
     fn set_file_info(&mut self, t: TS, u: UID, f: FUID, m: MD5, s1: SHA1, s2: SHA256, b: BYTES)
     {
@@ -121,6 +133,10 @@ impl Data
         map.insert("sha256".to_string(), s2.to_string());
         map.insert("total_size".to_string(), b.to_string());
         self.file_info.push(map);
+    }
+    pub fn get_file_info(&self) -> &Vec::<HashMap::<String,String>>
+    {
+        &self.file_info
     }
     fn set_time_range(&mut self, val: String)
     {
@@ -141,6 +157,10 @@ impl Data
             self.conn_state.push(val);
         }
     }
+    pub fn get_conn_state(&self) -> &Vec<String>
+    {
+        &self.conn_state
+    }
     fn set_history(&mut self, val: String)
     {
         if !self.history.contains(&val) 
@@ -148,14 +168,25 @@ impl Data
             self.history.push(val);
         }
     }
-
+    pub fn get_history(&self) -> &Vec<String>
+    {
+        &self.history
+    }
     fn set_dport(&mut self, val: u16)
     {
         self.dports.push(val);
     }
+    pub fn get_dports(&self) -> &Vec<u16>
+    {
+        &self.dports
+    }
     fn increment_bytes_transferred(&mut self, val: u64) 
     {
         self.bytes_transferred = self.bytes_transferred + val;
+    }
+    pub fn get_bytes_transferred(&self) -> u64
+    {
+        self.bytes_transferred
     }
     fn set_related_ip(&mut self, val: String)
     {
