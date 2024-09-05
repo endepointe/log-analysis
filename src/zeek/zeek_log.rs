@@ -118,10 +118,8 @@ impl Data
             self.connection_uids.push(val);
         }
     }
-    pub fn get_connection_uids(&self) -> &Vec<String>
-    {
-        &self.connection_uids
-    }
+    pub fn get_connection_uids(&self) -> &Vec<String> { &self.connection_uids }
+
     fn set_file_info(&mut self, t: TS, u: UID, f: FUID, m: MD5, s1: SHA1, s2: SHA256, b: BYTES)
     {
         let mut map = HashMap::<String,String>::new();
@@ -134,10 +132,8 @@ impl Data
         map.insert("total_size".to_string(), b.to_string());
         self.file_info.push(map);
     }
-    pub fn get_file_info(&self) -> &Vec::<HashMap::<String,String>>
-    {
-        &self.file_info
-    }
+    pub fn get_file_info(&self) -> &Vec::<HashMap::<String,String>> { &self.file_info }
+
     fn set_time_range(&mut self, val: String)
     {
         if let Some(time) = self.time_ranges.get_mut(&val)

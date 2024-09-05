@@ -31,6 +31,7 @@ fn test_flate2()
     d.read_to_string(&mut s).unwrap();
 
 }
+
 #[test]
 fn _write_to_file()
 {

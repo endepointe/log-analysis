@@ -92,7 +92,7 @@ run(mut terminal: DefaultTerminal) -> io::Result<()>
                 {                     
 
                     let main_data = format!(
-                        "\nIP Address: {}\nFrequency: {}\nConnection UIDs: {:?}\nProtocols: {:?}\nConnection State: {:?}\nHistory: {:?}\nDports: {:?}\nMalicious: todo \nBytes Transferred: {}\nRelated IPs: todo",
+                        "IP Address: {}\nFrequency: {}\nConnection UIDs: {:?}\nProtocols: {:?}\nConnection State: {:?}\nHistory: {:?}\nDports: {:?}\nMalicious: todo \nBytes Transferred: {}\nRelated IPs: todo",
                         data.get_ip_address(),
                         data.get_frequency(),
                         data.get_connection_uids(),
@@ -110,7 +110,7 @@ run(mut terminal: DefaultTerminal) -> io::Result<()>
 
                     let ip2location_data = match data.get_ip2location_data()
                     {
-                        Some(data) => format!("\nip: {:?}\ncountry_code: {:?}\nregion_name: {:?}\ncity_name: {:?}\nlatitude: {:?}\nlongitude: {:?}\nzip_code: {:?}\ntime_zone: {:?}\nauto_system_num: {:?}\nauto_system_name: {:?}\nis_proxy: {:?}", data.get_ip(), data.get_country_code(),data.get_region_name(),data.get_city_name(), data.get_latitude(), data.get_longitude(),data.get_zip_code(),data.get_time_zone(),data.get_auto_system_num(),data.get_auto_system_name(),data.get_is_proxy()),
+                        Some(data) => format!("ip: {:?}\ncountry_code: {:?}\nregion_name: {:?}\ncity_name: {:?}\nlatitude: {:?}\nlongitude: {:?}\nzip_code: {:?}\ntime_zone: {:?}\nauto_system_num: {:?}\nauto_system_name: {:?}\nis_proxy: {:?}", data.get_ip(), data.get_country_code(),data.get_region_name(),data.get_city_name(), data.get_latitude(), data.get_longitude(),data.get_zip_code(),data.get_time_zone(),data.get_auto_system_num(),data.get_auto_system_name(),data.get_is_proxy()),
                         None => "none".to_string(),
                     };
                     let ip2location_para = Paragraph::new(ip2location_data)
@@ -118,17 +118,14 @@ run(mut terminal: DefaultTerminal) -> io::Result<()>
                     frame.render_widget(ip2location_para, bottom[0]);
                    
                     let mut filehash_formatted_data = Vec::<String>::new();
-                    for file in data.get_file_info()
+                    for val in data.get_file_info()
                     {
-                        for (key,val) in file.iter()
-                        {
-                            let s = format!("\n{key}: {val}");
-                            filehash_formatted_data.push(s);
-                        }                    
+                        dbg!(val)
+                        //filehash_formatted_data.push(val);
+                        filehash_formatted_data.push("\n".to_string());
                     }
-                    filehash_formatted_data.push("\n-------------------------".to_string());
                     let filehash_data = filehash_formatted_data.join(" ");
-
+                    // this needs to be formatted. boring, work but needs to be done
                     let filehash_para = Paragraph::new(filehash_data)
                         .block(Block::default().borders(Borders::ALL).title("File Hash Data"));
                     frame.render_widget(filehash_para, bottom[1]);
