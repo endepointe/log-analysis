@@ -45,6 +45,7 @@ impl IP2LocationResponse
 
     fn set_ip(&mut self, val: String) {self.ip = Some(val);}
     pub fn get_ip(&self) -> &Option<String> { &self.ip }
+
     fn set_country_code(&mut self, val: String) 
     {
         self.country_code= Some(val);
@@ -144,7 +145,6 @@ impl IP2LocationResponse
                 for prop in data.iter()
                 {
                     let item = &prop.split(':').collect::<Vec<&str>>();
-                    dbg!(&item);
                     match item[0].trim_matches('"')
                     {
                         "ip" => {self.set_ip(String::from(item[1].trim_matches('"')));},

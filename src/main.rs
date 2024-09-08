@@ -6,24 +6,44 @@ use log_analysis::{
     types::error::Error,
     types::helpers::print_type_of,
 };
-use std::io;
+use std::io::{self, BufRead};
 use ratatui::prelude::*;
 use ratatui::widgets::*;
 use ratatui::{
-    layout::{Constraint, Direction, Layout},
+    layout::{Constraint, Direction, Layout, Rect},
     crossterm::event::{self, KeyCode, KeyEventKind},
-    style::Stylize,
-    widgets::{Borders, Paragraph, Block, List, ListItem, ListState},
+    style::{Color, Modifier, Style, Stylize},
+    widgets::{Borders, Paragraph, Block, List, ListItem, ListState, Wrap},
     DefaultTerminal,
 };
 
+enum AppMode 
+{
+    Normal,
+    InputIP,
+}
+
 fn main() -> io::Result<()>
 {
+    // thi sshould be a modal menu in the tui 
+    //let res = read_input();
     let mut terminal = ratatui::init();
     terminal.clear()?;
     let app_result = run(terminal);
     ratatui::restore();
     app_result
+}
+fn read_input() -> String 
+{
+    let mut buffer = String::new();
+    let stdin = io::stdin();
+    let mut handle = stdin.lock();
+    let result = handle.read_line(&mut buffer);
+    match result
+    {
+        Ok(_) => {return buffer;},
+        Err(_) => {return "error reading input".to_string();}
+    }
 }
 
 fn
@@ -39,8 +59,10 @@ run(mut terminal: DefaultTerminal) -> io::Result<()>
     let res = log.search(&params);
     assert!(res.is_ok());
     assert_eq!(false, log.data.len() == 0);
-
-    let mut app_state = ListState::default();
+ 
+    let mut app_mode = AppMode::Normal;
+    let mut ip_input = String::new();
+    let mut list_state = ListState::default();
     let rows = [Row::new(vec!["cell1", "cell2", "cell3"])];
     let widths = [Constraint::Length(5),Constraint::Length(5),Constraint::Length(10)];
 
@@ -54,7 +76,7 @@ run(mut terminal: DefaultTerminal) -> io::Result<()>
 
     loop 
     {
-        app_state.select(Some(index));
+        list_state.select(Some(index));
 
         terminal.draw(|frame| {
             let layout = Layout::default()
@@ -74,7 +96,7 @@ run(mut terminal: DefaultTerminal) -> io::Result<()>
                 .block(Block::default().borders(Borders::ALL).title("IP Addressses"))
                 .highlight_style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD));
 
-            frame.render_stateful_widget(ip_keys, layout[0], &mut app_state);
+            frame.render_stateful_widget(ip_keys, layout[0], &mut list_state);
 
             let right = Layout::default()
                 .direction(Direction::Vertical)
@@ -110,11 +132,17 @@ run(mut terminal: DefaultTerminal) -> io::Result<()>
 
                     let ip2location_data = match data.get_ip2location_data()
                     {
-                        Some(data) => format!("\nip: {:?}\ncountry_code: {:?}\nregion_name: {:?}\ncity_name: {:?}\nlatitude: {:?}\nlongitude: {:?}\nzip_code: {:?}\ntime_zone: {:?}\nauto_system_num: {:?}\nauto_system_name: {:?}\nis_proxy: {:?}", data.get_ip(), data.get_country_code(),data.get_region_name(),data.get_city_name(), data.get_latitude(), data.get_longitude(),data.get_zip_code(),data.get_time_zone(),data.get_auto_system_num(),data.get_auto_system_name(),data.get_is_proxy()),
+                        Some(data) => {
+                            format!("\nip: {:?}\ncountry_code: {:?}\nregion_name: {:?}
+                                    \ncity_name: {:?}\nlatitude: {:?}\nlongitude: {:?}
+                                    \nzip_code: {:?}\ntime_zone: {:?}\nauto_system_num: {:?}
+                                    \nauto_system_name: {:?}\nis_proxy: {:?}", data.get_ip(), data.get_country_code(),data.get_region_name(),data.get_city_name(), data.get_latitude(), data.get_longitude(),data.get_zip_code(),data.get_time_zone(),data.get_auto_system_num(),data.get_auto_system_name(),data.get_is_proxy())
+                        }
                         None => "none".to_string(),
                     };
                     let ip2location_para = Paragraph::new(ip2location_data)
-                        .block(Block::default().borders(Borders::ALL).title("IP2Location Data"));
+                        .block(Block::default().borders(Borders::ALL).title("IP2Location Data"))
+                        .wrap(Wrap {trim: true });
                     frame.render_widget(ip2location_para, bottom[0]);
                    
                     let mut filehash_formatted_data = Vec::<String>::new();
@@ -126,13 +154,30 @@ run(mut terminal: DefaultTerminal) -> io::Result<()>
                             filehash_formatted_data.push(s);
                         }                    
                     }
-                    filehash_formatted_data.push("\n-------------------------".to_string());
+                    if !filehash_formatted_data.is_empty()
+                    {
+                        filehash_formatted_data.push("\n-------------------------".to_string());
+                    }
                     let filehash_data = filehash_formatted_data.join(" ");
 
                     let filehash_para = Paragraph::new(filehash_data)
                         .block(Block::default().borders(Borders::ALL).title("File Hash Data"));
                     frame.render_widget(filehash_para, bottom[1]);
                 }
+            }
+
+            if let AppMode::InputIP = app_mode 
+            {
+                let area = centered_rect(60,20,frame.size());
+                let modal = Block::default()
+                    .title("Enter IP Address:")
+                    .borders(Borders::ALL)
+                    .style(Style::default().fg(Color::White).bg(Color::Black));
+                let input = Paragraph::new(ip_input.clone())
+                    .block(modal)
+                    .style(Style::default().fg(Color::Yellow))
+                    .wrap(Wrap {trim: true });
+                frame.render_widget(input, area);
             }
         })?;
 
@@ -142,21 +187,67 @@ run(mut terminal: DefaultTerminal) -> io::Result<()>
             {
                 return Ok(());
             }
-            match key.code 
+            match app_mode 
             {
-                KeyCode::Up => 
-                {
-                    if index > 0 { index -= 1;}
-                }
-                KeyCode::Down =>
-                {
-                    if index < ip_list.len() - 1
+                AppMode::Normal => match key.code {
+                    KeyCode::Char('i') => app_mode = AppMode::InputIP,
+                    KeyCode::Up => 
                     {
-                        index += 1;
+                        if index > 0 { index -= 1;}
+                        else { index = ip_list.len() - 1; }
                     }
+                    KeyCode::Down =>
+                    {
+                        if index < ip_list.len() - 1
+                        {
+                            index += 1;
+                        } else { index = 0; }
+                    }
+                    _ => {},
                 }
-                _ => {}
+                AppMode::InputIP => match key.code
+                {
+                    KeyCode::Esc => app_mode = AppMode::Normal,
+                    KeyCode::Enter => {
+                        println!("IP Address entered: {}", ip_input);
+                        ip_input.clear();
+                        app_mode = AppMode::Normal;
+                    }
+                    KeyCode::Backspace => {
+                        ip_input.pop();
+                    }
+                    KeyCode::Char(c) => {
+                        ip_input.push(c);
+                    }
+                    _ => {}
+                }
             }
         }
     }
+}
+
+fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
+    let popup_layout = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints(
+            [
+                Constraint::Percentage((100 - percent_y) / 2),
+                Constraint::Percentage(percent_y),
+                Constraint::Percentage((100 - percent_y) / 2),
+            ]
+            .as_ref(),
+        )
+        .split(r);
+
+    Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints(
+            [
+                Constraint::Percentage((100 - percent_x) / 2),
+                Constraint::Percentage(percent_x),
+                Constraint::Percentage((100 - percent_x) / 2),
+            ]
+            .as_ref(),
+        )
+        .split(popup_layout[1])[1]
 }
