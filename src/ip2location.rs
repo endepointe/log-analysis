@@ -145,10 +145,10 @@ impl IP2LocationResponse
                 for prop in data.iter()
                 {
                     let item = &prop.split(':').collect::<Vec<&str>>();
-                    match item[0].trim_matches('"')
+                    match item[0].trim_matches(|c| c == '"' || c == '\t' || c == '\n' || c == '"' || c == ' ')
                     {
-                        "ip" => {self.set_ip(String::from(item[1].trim_matches('"')));},
-                        "country_code" => {self.set_country_code(String::from(item[1].trim_matches('"')));},
+                        "ip" => {self.set_ip(String::from(item[1].trim_matches(|c| c == '"' || c == '\t' || c == '\n' || c == '"' || c == ' ')));},
+                        "country_code" => {self.set_country_code(String::from(item[1].trim_matches(|c| c == '"' || c == '\t' || c == '\n' || c == '"' || c == ' ')));},
                         "country_name" => {self.set_country_name(String::from(item[1].trim_matches('"')));},
                         "region_name" => {self.set_region_name(String::from(item[1].trim_matches('"')));},
                         "city_name" => {self.set_city_name(String::from(item[1].trim_matches('"')));},
@@ -217,6 +217,6 @@ pub fn request(ip_addr: &String) -> Result<String, String>
             return Ok(res);
         }
     }
-    Err("create an error for this at some point".to_string())
+    Err("Check IP address".to_string())
 }
 
