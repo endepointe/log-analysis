@@ -29,6 +29,7 @@ struct ParsedInput
     ip: Option<IpAddr>,
     start: Option<NaiveDate>,
     end: Option<NaiveDate>,
+    base: Option<String>,
 }
 
 #[derive(Debug, PartialEq)]
@@ -37,21 +38,22 @@ enum Focus
     IpInput,
     StartInput,
     EndInput,
+    BaseDirInput,
 }
 
 enum AppMode 
 {
     Normal,
-    InputIP,
+    InputIP, // change the name of this to Menu
 }
 
 #[derive(Debug)]
 struct AppState
 {
-    display_data: bool,
+    info_data: bool,
     list_state: ListState,
     input_text: String,
-    display_text: String,
+    info_text: String,
     ip_list: Vec<String>,
     log_data: HashMap<String, Data>,
     modal_open: bool,
@@ -59,6 +61,7 @@ struct AppState
     ip: String,
     start_date: String,
     end_date: String,
+    base_dir: String,
     index: usize,
 }
 
@@ -67,10 +70,10 @@ impl AppState
     fn new() -> Self
     {
         AppState {
-            display_data: false,
+            info_data: false,
             list_state: ListState::default(), 
             input_text: String::new(),
-            display_text: String::new(),
+            info_text: String::from("Enter IP address."),
             ip_list: Vec::<String>::new(),
             log_data: HashMap::new(),
             modal_open: false,
@@ -78,6 +81,7 @@ impl AppState
             ip: String::new(),
             start_date: String::new(),
             end_date: String::new(),
+            base_dir: String::from("zeek-test-logs"),
             index: 0,
         }
     }
@@ -96,7 +100,8 @@ fn main() -> io::Result<()>
 fn
 run(mut terminal: DefaultTerminal) -> io::Result<()>
 {
-    let app_state = Arc::new(Mutex::new(AppState::new()));
+    //let app_state = Arc::new(Mutex::new(AppState::new()));
+    let mut state = AppState::new();
     let mut app_mode = AppMode::InputIP;
     let mut ip_input = String::new();
     let mut list_state = ListState::default();
@@ -109,7 +114,7 @@ run(mut terminal: DefaultTerminal) -> io::Result<()>
             let layout = Layout::default()
                 .direction(Direction::Horizontal)
                 .constraints(vec![
-                    Constraint::Percentage(25),
+                    Constraint::Max(30),
                     Constraint::Percentage(75),
                 ])
                 .split(frame.area());
@@ -124,11 +129,11 @@ run(mut terminal: DefaultTerminal) -> io::Result<()>
                 .constraints([Constraint::Percentage(40), Constraint::Percentage(60)].as_ref())
                 .split(right[1]);
 
-            let mut state = app_state.lock().unwrap();
-            if state.display_data 
+            //let mut state = app_state.lock().unwrap();
+            if state.info_data 
             {                          
                 let mut keys = Vec::<ListItem>::new();
-                for ip in state.log_data.keys()
+                for ip in &state.ip_list
                 {
                     keys.push(ListItem::new(ip.to_string()));
                 }
@@ -213,7 +218,8 @@ run(mut terminal: DefaultTerminal) -> io::Result<()>
                         frame.render_widget(filehash_para, bottom[1]);
                     }
                 }
-            } else {drop(state);} //give state back} // data layout
+            } 
+            //else {drop(state);} //give state back} // data layout
               
             if let AppMode::InputIP = app_mode 
             {
@@ -240,7 +246,8 @@ run(mut terminal: DefaultTerminal) -> io::Result<()>
 
                 let left_col = Layout::default()
                     .direction(Direction::Vertical)
-                    .constraints([Constraint::Length(4), Constraint::Length(4), Constraint::Length(4)].as_ref())
+                    .constraints([Constraint::Length(4), Constraint::Length(4), 
+                                 Constraint::Length(4), Constraint::Length(4)].as_ref())
                     .split(inner_layout[0]);
 
                 let right_col = Layout::default()
@@ -248,58 +255,77 @@ run(mut terminal: DefaultTerminal) -> io::Result<()>
                     .constraints([Constraint::Percentage(100)].as_ref())
                     .split(inner_layout[1]);
 
-                let draw_input_box = |title: &str, text: &str, is_focused: bool| -> Paragraph {
+                let draw_input_box = |title: Option<&str>, text: &str, is_focused: bool| -> Paragraph {
                     let input_style = if is_focused {
                         Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)
                     } else {
                         Style::default().fg(Color::White)
                     };
-
-                    Paragraph::new(Span::styled(
-                        format!("{}: {}", title, text),
-                        input_style,
-                    ))
-                    .block(Block::default().borders(Borders::ALL))
-                    .alignment(Alignment::Left)
+                    
+                    if let Some(title) = title 
+                    {
+                        Paragraph::new(Span::styled(
+                            format!("{}: {}", title, text),
+                            input_style,
+                        ))
+                        .block(Block::default().borders(Borders::ALL))
+                        .alignment(Alignment::Left)
+                    }
+                    else 
+                    {
+                        Paragraph::new(Span::styled(
+                            format!("{}", text),
+                            input_style,
+                        ))
+                        .block(Block::default().borders(Borders::ALL))
+                        .alignment(Alignment::Left)
+                    }
                 };
 
+                //let mut state = app_state.lock().unwrap();
+                frame.render_widget(
+                    draw_input_box(Some("IP address"), &state.ip, state.focus == Focus::IpInput),
+                    left_col[0],
+                );
+                frame.render_widget(
+                    draw_input_box(Some("Start Date"), &state.start_date, state.focus == Focus::StartInput),
+                    left_col[1],
+                );
+                frame.render_widget(
+                    draw_input_box(Some("End Date"), &state.end_date, state.focus == Focus::EndInput),
+                    left_col[2],
+                );
+                frame.render_widget(
+                    draw_input_box(Some("Base Dir"), &state.base_dir, state.focus == Focus::BaseDirInput),
+                    left_col[3],
+                );
+                frame.render_widget(
+                    draw_input_box(None, &state.info_text, false),
+                    right_col[0],
+                );
+                match state.focus
                 {
-                    let mut state = app_state.lock().unwrap();
-                    frame.render_widget(
-                        draw_input_box("IP Address", &state.ip, state.focus == Focus::IpInput),
-                        left_col[0],
-                    );
-                    frame.render_widget(
-                        draw_input_box("Start Date", &state.start_date, state.focus == Focus::StartInput),
-                        left_col[1],
-                    );
-                    frame.render_widget(
-                        draw_input_box("End Date", &state.end_date, state.focus == Focus::EndInput),
-                        left_col[2],
-                    );
-                    frame.render_widget(
-                        draw_input_box("Addl info", &state.display_text, false),
-                        right_col[0],
-                    );
-                    match state.focus
-                    {
-                        Focus::IpInput => {
-                            let cursor_x = left_col[0].x + 13 + state.ip.len() as u16;
-                            let cursor_y = left_col[0].y + 1;
-                            frame.set_cursor(cursor_x,cursor_y);
-                        }
-                        Focus::StartInput => {
-                            let cursor_x = left_col[1].x + 13 + state.start_date.len() as u16;
-                            let cursor_y = left_col[1].y + 1;
-                            frame.set_cursor(cursor_x,cursor_y);
-                        }
-                        Focus::EndInput => {
-                            let cursor_x = left_col[2].x + 11 + state.end_date.len() as u16;
-                            let cursor_y = left_col[2].y + 1;
-                            frame.set_cursor(cursor_x,cursor_y);
-                        }
-                        _ => {}
+                    Focus::IpInput => {
+                        let cursor_x = left_col[0].x + 13 + state.ip.len() as u16;
+                        let cursor_y = left_col[0].y + 1;
+                        frame.set_cursor(cursor_x,cursor_y);
                     }
+                    Focus::StartInput => {
+                        let cursor_x = left_col[1].x + 13 + state.start_date.len() as u16;
+                        let cursor_y = left_col[1].y + 1;
+                        frame.set_cursor(cursor_x,cursor_y);
+                    }
+                    Focus::EndInput => {
+                        let cursor_x = left_col[2].x + 11 + state.end_date.len() as u16;
+                        let cursor_y = left_col[2].y + 1;
+                        frame.set_cursor(cursor_x,cursor_y);
+                    }
+                    Focus::BaseDirInput => {
+                        let cursor_x = left_col[3].x + 11 + state.base_dir.len() as u16;
+                        let cursor_y = left_col[3].y + 1;
+                        frame.set_cursor(cursor_x,cursor_y);
+                    }
+                    _ => {}
                 }
             }
         })?; // end terminal draw
@@ -314,31 +340,28 @@ run(mut terminal: DefaultTerminal) -> io::Result<()>
             {
                 AppMode::Normal => match key.code {
                     KeyCode::Char('i') => {
-                        let mut state = app_state.lock().unwrap();
-                        state.display_data = false;
+                        //let mut state = app_state.lock().unwrap();
+                        state.info_data = false;
                         state.input_text.clear();
-                        state.display_text.clear();
+                        state.info_text.clear();
                         state.modal_open = true;
                         app_mode = AppMode::InputIP;
                     }
                     KeyCode::Up => 
                     {
-                        let mut state = app_state.lock().unwrap();
                         if state.index > 0 { state.index -= 1;}
                         else { state.index = state.ip_list.len() - 1; }
                     }
                     KeyCode::Down =>
                     {
-                        let mut state = app_state.lock().unwrap();
-                        dbg!(&state.ip_list.len());
-                        if state.index < 10//&state.ip_list.len() - 1
+                        if state.index < state.ip_list.len() - 1
                         {
                             state.index += 1;
                         } else { state.index = 0; }
                     }
                     KeyCode::Esc => {
-                        let mut state = app_state.lock().unwrap();
-                        state.display_data = false;
+                        //let mut state = app_state.lock().unwrap();
+                        state.info_data = false;
                         app_mode = AppMode::InputIP;
                     },
                     _ => {}
@@ -346,26 +369,24 @@ run(mut terminal: DefaultTerminal) -> io::Result<()>
                 AppMode::InputIP => match key.code
                 {
                     KeyCode::Esc => {
-                        let mut state = app_state.lock().unwrap();
+                        //let mut state = app_state.lock().unwrap();
                         state.input_text.clear();
-                        state.display_text.clear();
+                        state.info_text.clear();
                         state.modal_open = false;
                         app_mode = AppMode::Normal;
-                        state.display_data = true;
+                        state.info_data = true;
                     }
                     KeyCode::Enter => {
-                        let mut state = app_state.lock().unwrap();
-                        state.display_text.clear();
-                        state.display_text = format!("getting deeta...");
-                        let data = format!("ip={},start={},end={}",&state.ip,&state.start_date,&state.end_date);
+                        //let mut state = app_state.lock().unwrap();
+                        state.info_text.clear();
+                        let data = format!("ip={},start={},end={},base={}",&state.ip,&state.start_date,&state.end_date,&state.base_dir);
                         if let Ok(input_args) = parse_input(&data)
                         {
-                            state.display_text = format!("{:?}",&input_args);
-                            if let Some(start_date) = input_args.start
+                            if let Some(start_date) = &input_args.start
                             {
                                 let date = format!("{:?}", start_date);
                                 let params = ZeekSearchParamsBuilder::default()
-                                    .path_prefix("zeek-test-logs")
+                                    .path_prefix(&*state.base_dir)
                                     .start_date(&*date)
                                     .build()
                                     .unwrap();
@@ -374,43 +395,46 @@ run(mut terminal: DefaultTerminal) -> io::Result<()>
                                 assert!(res.is_ok());
                                 assert_eq!(false, log.data.len() == 0);
 
+                                //state.log_data = log.data;
+
+                                for ip in log.data.keys()
+                                {
+                                    state.ip_list.push(ip.to_string());
+                                }
                                 state.log_data = log.data;
-                                //state.ip_list.clear();
 
-                                state.display_text = format!("{:?}",state.ip_list);
-
-                        //        if let Ok(response) = request(&entered_ip.to_string())
-                        //        {
-                        //            let mut data = IP2LocationResponse::new();
-                        //            data.create(&response);
-                        //            let none = String::from("");
-                        //            state.display_text = format!("\nip: {:?}\ncountry_code: {:?}\nregion_name: {:?}
-                        //                \ncity_name: {:?}\nlatitude: {:?}\nlongitude: {:?}
-                        //                \nzip_code: {:?}\ntime_zone: {:?}\nauto_system_num: {:?}
-                        //                \nauto_system_name: {:?}\nis_proxy: {:?}", data.get_ip().as_ref().unwrap_or(&none), 
-                        //                data.get_country_code().as_ref().unwrap_or(&none),
-                        //                data.get_region_name().as_ref().unwrap_or(&none),
-                        //                data.get_city_name().as_ref().unwrap_or(&none), 
-                        //                data.get_latitude().as_ref().unwrap_or(&none), 
-                        //                data.get_longitude().as_ref().unwrap_or(&none),
-                        //                data.get_zip_code().as_ref().unwrap_or(&none),
-                        //                data.get_time_zone().as_ref().unwrap_or(&none),
-                        //                data.get_auto_system_num().as_ref().unwrap_or(&none),
-                        //                data.get_auto_system_name().as_ref().unwrap_or(&none),
-                        //                data.get_is_proxy().as_ref().unwrap_or(&none));
-                        //        }
-                        //        else {
-                        //            state.input_text = format!("{}","Usage: ip = address, start = yyyy-mm-dd, end= yyyy-mm-dd");
-                        //        }
-                        //    }
-                        //    else {
-                        //        state.input_text = format!("{}","Usage: ip = address, start = yyyy-mm-dd, end= yyyy-mm-dd");
-                        //    }
+                                state.info_text = format!("{:?}",state.ip);
+                                if cfg!(feature = "ip2location") 
+                                {
+                                //if let Ok(response) = request(&entered_ip.to_string())
+                                //{
+                                //    let mut data = IP2LocationResponse::new();
+                                //    data.create(&response);
+                                //    let none = String::from("");
+                                //    state.info_text = format!("\nip: {:?}\ncountry_code: {:?}\nregion_name: {:?}
+                                //        \ncity_name: {:?}\nlatitude: {:?}\nlongitude: {:?}
+                                //        \nzip_code: {:?}\ntime_zone: {:?}\nauto_system_num: {:?}
+                                //        \nauto_system_name: {:?}\nis_proxy: {:?}", data.get_ip().as_ref().unwrap_or(&none), 
+                                //        data.get_country_code().as_ref().unwrap_or(&none),
+                                //        data.get_region_name().as_ref().unwrap_or(&none),
+                                //        data.get_city_name().as_ref().unwrap_or(&none), 
+                                //        data.get_latitude().as_ref().unwrap_or(&none), 
+                                //        data.get_longitude().as_ref().unwrap_or(&none),
+                                //        data.get_zip_code().as_ref().unwrap_or(&none),
+                                //        data.get_time_zone().as_ref().unwrap_or(&none),
+                                //        data.get_auto_system_num().as_ref().unwrap_or(&none),
+                                //        data.get_auto_system_name().as_ref().unwrap_or(&none),
+                                //        data.get_is_proxy().as_ref().unwrap_or(&none));
+                                }
+                                else 
+                                {
+                                //    state.input_text = format!("{}","Usage: ip = address, start = yyyy-mm-dd, end= yyyy-mm-dd");
+                                }
                             } 
                         } else {state.modal_open = true;}
                     }
                     KeyCode::Backspace => {
-                        let mut state = app_state.lock().unwrap();
+                        //let mut state = app_state.lock().unwrap();
                         match state.focus
                         {
                             Focus::IpInput => {
@@ -422,26 +446,44 @@ run(mut terminal: DefaultTerminal) -> io::Result<()>
                             Focus::EndInput => {
                                 state.end_date.pop();
                             }
+                            Focus::BaseDirInput => {
+                                state.base_dir.pop();
+                            }
                             _ => {}
                         }
-                        state.display_text.clear();
+                        state.info_text.clear();
                     }
                     KeyCode::Char(c) => {
-                        let mut state = app_state.lock().unwrap();
+                        //let mut state = app_state.lock().unwrap();
                         match state.focus
                         {
                             Focus::IpInput => state.ip.push(c),
                             Focus::StartInput => state.start_date.push(c),
                             Focus::EndInput => state.end_date.push(c),
+                            Focus::BaseDirInput => state.base_dir.push(c),
                             _ => {}
                         }
                     }
                     KeyCode::Tab => {
-                        let mut state = app_state.lock().unwrap();
+                        //let mut state = app_state.lock().unwrap();
                         state.focus = match state.focus {
-                            Focus::IpInput => Focus::StartInput,
-                            Focus::StartInput => Focus::EndInput,
-                            Focus::EndInput => Focus::IpInput,
+                            Focus::IpInput => {
+                                state.info_text = format!("{}", "Enter start date: yyyy-mm-dd");
+                                Focus::StartInput
+                            }
+                            Focus::StartInput => {
+                                state.info_text = format!("{}", "Enter end date: yyyy-mm-dd ");
+                                Focus::EndInput
+                            }
+                            Focus::EndInput => {
+                                state.info_text = format!("{}", "Enter an IP address.");
+                                Focus::BaseDirInput
+                            }
+                            Focus::BaseDirInput => {
+                                state.info_text = format!("{}", "Enter the base directory of the logs.
+                                                          \n (eg: basedir/yyyy-mm-dd)");
+                                Focus::IpInput
+                            }
                         }
                     }
                     _ => {}
@@ -457,6 +499,7 @@ fn parse_input(input: &str) -> Result<ParsedInput,String>
     let mut ip: Option<IpAddr> = None;
     let mut start: Option<NaiveDate> = None;
     let mut end: Option<NaiveDate> = None;
+    let mut base: Option<String> = None;
 
     for part in parts {
         let mut key_value = part.split('=').map(|s| s.trim());
@@ -474,10 +517,13 @@ fn parse_input(input: &str) -> Result<ParsedInput,String>
             (Some("end"), Some(end_str)) if !end_str.is_empty() => {
                 end = NaiveDate::parse_from_str(end_str, "%Y-%m-%d").ok();
             }
+            (Some("base"), Some(base_str)) if !base_str.is_empty() => {
+                base = base_str.parse().ok();
+            }
             _ => {}
         }
     }
-    Ok(ParsedInput{ip,start,end})
+    Ok(ParsedInput{ip,start,end,base})
 }
 
 fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
