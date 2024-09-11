@@ -56,6 +56,7 @@ struct AppState
     info_text: String,
     ip_list: Vec<String>,
     log_data: HashMap<String, Data>,
+    ip2loc_info: String,
     modal_open: bool,
     focus: Focus,
     ip: String,
@@ -76,6 +77,7 @@ impl AppState
             info_text: String::from("Enter IP address."),
             ip_list: Vec::<String>::new(),
             log_data: HashMap::new(),
+            ip2loc_info: String::new(),
             modal_open: false,
             focus: Focus::IpInput,
             ip: String::new(),
@@ -170,7 +172,9 @@ run(mut terminal: DefaultTerminal) -> io::Result<()>
                         let main_data_para = Paragraph::new(main_data)
                             .block(Block::default().borders(Borders::ALL).title("General Data"));
                         frame.render_widget(main_data_para, right[0]);
-                        /*
+                        if cfg!(feature = "ip2location") 
+                        {
+                           
                         let ip2location_data = match data.get_ip2location_data()
                         {
                             Some(data) => {
@@ -196,7 +200,7 @@ run(mut terminal: DefaultTerminal) -> io::Result<()>
                             .block(Block::default().borders(Borders::ALL).title("IP2Location Data"))
                             .wrap(Wrap {trim: true });
                         frame.render_widget(ip2location_para, bottom[0]);
-                        */
+                        }
                        
                         let mut filehash_formatted_data = Vec::<String>::new();
                         for file in data.get_file_info()
@@ -270,6 +274,7 @@ run(mut terminal: DefaultTerminal) -> io::Result<()>
                         ))
                         .block(Block::default().borders(Borders::ALL))
                         .alignment(Alignment::Left)
+                        .wrap(Wrap {trim: true })
                     }
                     else 
                     {
@@ -279,6 +284,7 @@ run(mut terminal: DefaultTerminal) -> io::Result<()>
                         ))
                         .block(Block::default().borders(Borders::ALL))
                         .alignment(Alignment::Left)
+                        .wrap(Wrap {trim: true })
                     }
                 };
 
@@ -392,43 +398,54 @@ run(mut terminal: DefaultTerminal) -> io::Result<()>
                                     .unwrap();
                                 let mut log = ZeekLog::new();
                                 let res = log.search(&params);
-                                assert!(res.is_ok());
-                                assert_eq!(false, log.data.len() == 0);
-
-                                //state.log_data = log.data;
-
-                                for ip in log.data.keys()
-                                {
-                                    state.ip_list.push(ip.to_string());
-                                }
-                                state.log_data = log.data;
-
-                                state.info_text = format!("{:?}",state.ip);
-                                if cfg!(feature = "ip2location") 
-                                {
-                                //if let Ok(response) = request(&entered_ip.to_string())
-                                //{
-                                //    let mut data = IP2LocationResponse::new();
-                                //    data.create(&response);
-                                //    let none = String::from("");
-                                //    state.info_text = format!("\nip: {:?}\ncountry_code: {:?}\nregion_name: {:?}
-                                //        \ncity_name: {:?}\nlatitude: {:?}\nlongitude: {:?}
-                                //        \nzip_code: {:?}\ntime_zone: {:?}\nauto_system_num: {:?}
-                                //        \nauto_system_name: {:?}\nis_proxy: {:?}", data.get_ip().as_ref().unwrap_or(&none), 
-                                //        data.get_country_code().as_ref().unwrap_or(&none),
-                                //        data.get_region_name().as_ref().unwrap_or(&none),
-                                //        data.get_city_name().as_ref().unwrap_or(&none), 
-                                //        data.get_latitude().as_ref().unwrap_or(&none), 
-                                //        data.get_longitude().as_ref().unwrap_or(&none),
-                                //        data.get_zip_code().as_ref().unwrap_or(&none),
-                                //        data.get_time_zone().as_ref().unwrap_or(&none),
-                                //        data.get_auto_system_num().as_ref().unwrap_or(&none),
-                                //        data.get_auto_system_name().as_ref().unwrap_or(&none),
-                                //        data.get_is_proxy().as_ref().unwrap_or(&none));
-                                }
+                                if let Err(_err) = res {
+                                    // messy for now. clean it up if you want and make a pr.
+                                    state.info_text = format!("{}\n{}\n{}\n{}\n{}\n",
+                                                              "Check usage.(", 
+                                                              " ip: address,", 
+                                                              " start: yyyy-mm-dd,",
+                                                              " end: yyyy-mm-dd,",
+                                                              " base: valid_base_dir_to_logs)");
+                                } 
                                 else 
                                 {
-                                //    state.input_text = format!("{}","Usage: ip = address, start = yyyy-mm-dd, end= yyyy-mm-dd");
+                                    for ip in log.data.keys()
+                                    {
+                                        state.ip_list.push(ip.to_string());
+                                    }
+                                    state.log_data = log.data;
+
+                                    if let Some(end) = input_args.end 
+                                    {
+                                        state.info_text = format!("{end}");
+                                    }
+                                    //if cfg!(feature = "ip2location") 
+                                    //{
+                                    //    if let Ok(response) = request(&state.ip.to_string())
+                                    //    {
+                                    //        let mut data = IP2LocationResponse::new();
+                                    //        data.create(&response);
+                                    //        let none = String::from("");
+                                    //        state.ip2loc_info = format!("\nip: {:?}\ncountry_code: {:?}\nregion_name: {:?}
+                                    //            \ncity_name: {:?}\nlatitude: {:?}\nlongitude: {:?}
+                                    //            \nzip_code: {:?}\ntime_zone: {:?}\nauto_system_num: {:?}
+                                    //            \nauto_system_name: {:?}\nis_proxy: {:?}", data.get_ip().as_ref().unwrap_or(&none), 
+                                    //            data.get_country_code().as_ref().unwrap_or(&none),
+                                    //            data.get_region_name().as_ref().unwrap_or(&none),
+                                    //            data.get_city_name().as_ref().unwrap_or(&none), 
+                                    //            data.get_latitude().as_ref().unwrap_or(&none), 
+                                    //            data.get_longitude().as_ref().unwrap_or(&none),
+                                    //            data.get_zip_code().as_ref().unwrap_or(&none),
+                                    //            data.get_time_zone().as_ref().unwrap_or(&none),
+                                    //            data.get_auto_system_num().as_ref().unwrap_or(&none),
+                                    //            data.get_auto_system_name().as_ref().unwrap_or(&none),
+                                    //            data.get_is_proxy().as_ref().unwrap_or(&none));
+                                    //    }
+                                    //    else 
+                                    //    {
+                                    //        state.info_text = format!("{}","Usage: ip = address, start = yyyy-mm-dd, end= yyyy-mm-dd, base=valid_directory");
+                                    //    }
+                                    //}
                                 }
                             } 
                         } else {state.modal_open = true;}
@@ -476,12 +493,12 @@ run(mut terminal: DefaultTerminal) -> io::Result<()>
                                 Focus::EndInput
                             }
                             Focus::EndInput => {
-                                state.info_text = format!("{}", "Enter an IP address.");
+                                state.info_text = format!("{}", "Enter the base directory of the logs.
+                                                          \n (eg: basedir/yyyy-mm-dd)");
                                 Focus::BaseDirInput
                             }
                             Focus::BaseDirInput => {
-                                state.info_text = format!("{}", "Enter the base directory of the logs.
-                                                          \n (eg: basedir/yyyy-mm-dd)");
+                                state.info_text = format!("{}", "Enter an IP address.");
                                 Focus::IpInput
                             }
                         }
