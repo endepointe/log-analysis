@@ -211,18 +211,18 @@ run(mut terminal: DefaultTerminal) -> io::Result<()>
             if let AppMode::InputIP = app_mode 
             {
                 let screen_size = frame.area();
-                let modal_width = 120;
-                let modal_height = 30;
-                //https://doc.rust-lang.org/core/primitive.u16.html#method.saturating_sub
+                let modal_width = 50;
+                let modal_height = 10;
                 let modal_x = (screen_size.width.saturating_sub(modal_width)) / 2;
                 let modal_y = (screen_size.height.saturating_sub(modal_height)) / 2;
+                let area = Rect::new(modal_x, modal_y, modal_width, modal_height);//centered_rect(100,100,frame.area());
 
                 let modal = Block::default()
                     .title("Enter IP / Start date / End date")
                     .borders(Borders::ALL)
                     .style(Style::default().fg(Color::White).bg(Color::Black).add_modifier(Modifier::BOLD));
 
-                let modal_block = Rect::new(modal_x, modal_y, modal_width, modal_height); 
+                let modal_block = Rect{x: area.x, y: area.y + area.height, width: area.width, height: 20};
                 frame.render_widget(Clear, modal_block);
                 frame.render_widget(modal, modal_block);
 
@@ -233,7 +233,7 @@ run(mut terminal: DefaultTerminal) -> io::Result<()>
 
                 let left_col = Layout::default()
                     .direction(Direction::Vertical)
-                    .constraints([Constraint::Length(4), Constraint::Length(4), Constraint::Length(4)].as_ref())
+                    .constraints([Constraint::Length(5), Constraint::Length(5), Constraint::Length(5)].as_ref())
                     .split(inner_layout[0]);
 
                 let right_col = Layout::default()
@@ -277,19 +277,19 @@ run(mut terminal: DefaultTerminal) -> io::Result<()>
                     match state.focus
                     {
                         Focus::IpInput => {
-                            let cursor_x = left_col[0].x + 13 + state.ip.len() as u16;
-                            let cursor_y = left_col[0].y + 1;
-                            frame.set_cursor(cursor_x,cursor_y);
+                            //let cursor_x = left_col[0].x + 13 + state.ip.len() as u16;
+                            //let cursor_y = left_col[0].y + 1;
+                            //frame.set_cursor(cursor_x,cursor_y);
                         }
                         Focus::StartInput => {
-                            let cursor_x = left_col[1].x + 13 + state.start_date.len() as u16;
-                            let cursor_y = left_col[1].y + 1;
-                            frame.set_cursor(cursor_x,cursor_y);
+                            //let cursor_x = left_col[1].x + 13 + state.start_date.len() as u16;
+                            //let cursor_y = left_col[1].y + 1;
+                            //frame.set_cursor(cursor_x,cursor_y);
                         }
                         Focus::EndInput => {
-                            let cursor_x = left_col[2].x + 11 + state.end_date.len() as u16;
-                            let cursor_y = left_col[2].y + 1;
-                            frame.set_cursor(cursor_x,cursor_y);
+                            //let cursor_x = left_col[0].x + 11 + state.end_date.len() as u16;
+                            //let cursor_y = left_col[0].y + 1;
+                            //frame.set_cursor(cursor_x,cursor_y);
                         }
                         _ => {}
                     }
