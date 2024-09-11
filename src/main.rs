@@ -1,7 +1,7 @@
 
 use log_analysis::{
     zeek::zeek_search_params::ZeekSearchParamsBuilder, 
-    zeek::zeek_log::ZeekLog,
+    zeek::zeek_log::{ZeekLog,Data},
     zeek::zeek_log_proto::ZeekProtocol,
     types::error::Error,
     types::helpers::print_type_of,
@@ -20,6 +20,7 @@ use ratatui::{
 use log_analysis::ip2location::{request,IP2LocationResponse};
 use std::sync::{Arc,Mutex};
 use std::net::IpAddr;
+use std::collections::HashMap;
 use chrono::NaiveDate;
 
 #[derive(Debug)]
@@ -51,11 +52,14 @@ struct AppState
     list_state: ListState,
     input_text: String,
     display_text: String,
+    ip_list: Vec<String>,
+    log_data: HashMap<String, Data>,
     modal_open: bool,
     focus: Focus,
     ip: String,
     start_date: String,
-    end_date: String
+    end_date: String,
+    index: usize,
 }
 
 impl AppState
@@ -67,11 +71,14 @@ impl AppState
             list_state: ListState::default(), 
             input_text: String::new(),
             display_text: String::new(),
+            ip_list: Vec::<String>::new(),
+            log_data: HashMap::new(),
             modal_open: false,
             focus: Focus::IpInput,
             ip: String::new(),
             start_date: String::new(),
-            end_date: String::new()
+            end_date: String::new(),
+            index: 0,
         }
     }
 }
@@ -94,7 +101,7 @@ run(mut terminal: DefaultTerminal) -> io::Result<()>
     let mut ip_input = String::new();
     let mut list_state = ListState::default();
 
-    let mut index = 0;
+    //let mut index = 0;
 
     loop 
     {
@@ -120,22 +127,22 @@ run(mut terminal: DefaultTerminal) -> io::Result<()>
             let mut state = app_state.lock().unwrap();
             if state.display_data 
             {                          
-                /*
-                let keys: Vec<ListItem> = ip_list
-                    .iter()
-                    .map(|ip| ListItem::new(ip.to_string()))
-                    .collect();
+                let mut keys = Vec::<ListItem>::new();
+                for ip in state.log_data.keys()
+                {
+                    keys.push(ListItem::new(ip.to_string()));
+                }
 
                 let ip_keys = List::new(keys)
                     .block(Block::default().borders(Borders::ALL).title("IP Addressses"))
                     .highlight_style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD));
-
+                let index = state.index;
                 state.list_state.select(Some(index));
                 frame.render_stateful_widget(ip_keys, layout[0], &mut state.list_state);
 
-                if let Some(ip) = ip_list.get(index)
+                if let Some(ip) = state.ip_list.get(state.index)
                 {
-                    if let Some(data) = log.data.get(ip) 
+                    if let Some(data) = state.log_data.get(ip) 
                     {                     
 
                         let main_data = format!(
@@ -158,7 +165,7 @@ run(mut terminal: DefaultTerminal) -> io::Result<()>
                         let main_data_para = Paragraph::new(main_data)
                             .block(Block::default().borders(Borders::ALL).title("General Data"));
                         frame.render_widget(main_data_para, right[0]);
-
+                        /*
                         let ip2location_data = match data.get_ip2location_data()
                         {
                             Some(data) => {
@@ -184,6 +191,7 @@ run(mut terminal: DefaultTerminal) -> io::Result<()>
                             .block(Block::default().borders(Borders::ALL).title("IP2Location Data"))
                             .wrap(Wrap {trim: true });
                         frame.render_widget(ip2location_para, bottom[0]);
+                        */
                        
                         let mut filehash_formatted_data = Vec::<String>::new();
                         for file in data.get_file_info()
@@ -205,8 +213,7 @@ run(mut terminal: DefaultTerminal) -> io::Result<()>
                         frame.render_widget(filehash_para, bottom[1]);
                     }
                 }
-            */
-            } else {drop(state); //give state back} // data layout
+            } else {drop(state);} //give state back} // data layout
               
             if let AppMode::InputIP = app_mode 
             {
@@ -295,7 +302,6 @@ run(mut terminal: DefaultTerminal) -> io::Result<()>
                     }
                 }
             }
-            }
         })?; // end terminal draw
 
         if let event::Event::Key(key) = event::read()? 
@@ -317,15 +323,18 @@ run(mut terminal: DefaultTerminal) -> io::Result<()>
                     }
                     KeyCode::Up => 
                     {
-                        //if index > 0 { index -= 1;}
-                        //else { index = ip_list.len() - 1; }
+                        let mut state = app_state.lock().unwrap();
+                        if state.index > 0 { state.index -= 1;}
+                        else { state.index = state.ip_list.len() - 1; }
                     }
                     KeyCode::Down =>
                     {
-                        //if index < ip_list.len() - 1
-                        //{
-                        //    index += 1;
-                        //} else { index = 0; }
+                        let mut state = app_state.lock().unwrap();
+                        dbg!(&state.ip_list.len());
+                        if state.index < 10//&state.ip_list.len() - 1
+                        {
+                            state.index += 1;
+                        } else { state.index = 0; }
                     }
                     KeyCode::Esc => {
                         let mut state = app_state.lock().unwrap();
@@ -348,7 +357,6 @@ run(mut terminal: DefaultTerminal) -> io::Result<()>
                         let mut state = app_state.lock().unwrap();
                         state.display_text.clear();
                         state.display_text = format!("getting deeta...");
-                        //state.display_data = true;
                         let data = format!("ip={},start={},end={}",&state.ip,&state.start_date,&state.end_date);
                         if let Ok(input_args) = parse_input(&data)
                         {
@@ -366,13 +374,11 @@ run(mut terminal: DefaultTerminal) -> io::Result<()>
                                 assert!(res.is_ok());
                                 assert_eq!(false, log.data.len() == 0);
 
-                                let mut ip_list = Vec::<String>::new();
+                                state.log_data = log.data;
+                                //state.ip_list.clear();
 
-                                for ip in log.data.keys()
-                                {
-                                    ip_list.push(ip.to_string());
-                                }
-                                state.display_text = format!("{:?}",ip_list);
+                                state.display_text = format!("{:?}",state.ip_list);
+
                         //        if let Ok(response) = request(&entered_ip.to_string())
                         //        {
                         //            let mut data = IP2LocationResponse::new();
