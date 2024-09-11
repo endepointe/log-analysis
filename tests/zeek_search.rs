@@ -147,6 +147,25 @@ fn test_search_000_fail()
     assert_eq!(res, Err(Error::SearchInvalidStartDate));
 }
 
+//#[test]
+//fn test_search_001_pass()
+//{
+//    let params = ZeekSearchParamsBuilder::default()
+//        .path_prefix("zeek-test-logs")
+//        .start_date("2024-07-02")
+//        .end_date("2024-07-03")
+//        .build()
+//        .unwrap();
+//
+//    let mut log = ZeekLog::new();
+//    let res = log.search(&params);
+//    //dbg!(&res);
+//    assert!(res.is_ok());
+//    //dbg!(&log.data);
+//    assert_eq!(false, log.data.len() == 0);
+//    dbg!(log.data);
+//}
+
 #[test]
 fn test_search_100_pass()
 {

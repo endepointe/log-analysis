@@ -159,7 +159,7 @@ impl IP2LocationResponse
                         "asn" => {self.set_auto_system_num(String::from(item[1].trim_matches('"')));},
                         "as" => {self.set_auto_system_name(String::from(item[1].trim_matches('"')));},
                         "is_proxy" => {self.set_is_proxy(String::from(item[1].trim_matches('"')));},
-                        _ => println!("implement {:?}", &item[0]),
+                        _ => {},
                     }
                 }
             }
