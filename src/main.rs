@@ -21,7 +21,7 @@ use log_analysis::ip2location::{request,IP2LocationResponse};
 use std::sync::{Arc,Mutex};
 use std::net::IpAddr;
 use std::collections::HashMap;
-use chrono::NaiveDate;
+use chrono::{Duration, NaiveDate};
 
 #[derive(Debug)]
 struct ParsedInput
@@ -417,7 +417,8 @@ run(mut terminal: DefaultTerminal) -> io::Result<()>
 
                                     if let Some(end) = input_args.end 
                                     {
-                                        state.info_text = format!("{end}");
+                                        let date_strings = generate_dates(&input_args.start.unwrap().to_string(),&input_args.end.unwrap().to_string());
+                                        state.info_text = format!("{date_strings:?}");
                                     }
                                     //if cfg!(feature = "ip2location") 
                                     //{
@@ -543,7 +544,29 @@ fn parse_input(input: &str) -> Result<ParsedInput,String>
     Ok(ParsedInput{ip,start,end,base})
 }
 
-fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
+fn
+generate_dates(start: &str, end: &str) -> Vec<String>
+{
+    let start_date = NaiveDate::parse_from_str(start, "%Y-%m-%d")
+        .expect("Invalid start date format: YYYY-MM-DD");
+
+    let end_date = NaiveDate::parse_from_str(end, "%Y-%m-%d")
+        .expect("Invalid end date format: YYYY-MM-DD");
+
+    let mut dates = Vec::new();
+    let mut current_date = start_date;
+
+    while current_date <= end_date 
+    {
+        dates.push(current_date.format("%Y-%m-%d").to_string());
+        current_date += Duration::days(1);
+    }
+
+    dates
+}
+
+fn 
+centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
     let popup_layout = Layout::default()
         .direction(Direction::Horizontal)
         .constraints(
