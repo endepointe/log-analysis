@@ -44,13 +44,13 @@ enum Focus
 enum AppMode 
 {
     Normal,
-    InputIP, // change the name of this to Menu
+    Menu, 
 }
 
 #[derive(Debug)]
 struct AppState
 {
-    info_data: bool,
+    display_dashboard: bool,
     list_state: ListState,
     input_text: String,
     info_text: String,
@@ -71,7 +71,7 @@ impl AppState
     fn new() -> Self
     {
         AppState {
-            info_data: false,
+            display_dashboard: false,
             list_state: ListState::default(), 
             input_text: String::new(),
             info_text: String::from("Enter IP address."),
@@ -104,7 +104,7 @@ run(mut terminal: DefaultTerminal) -> io::Result<()>
 {
     //let app_state = Arc::new(Mutex::new(AppState::new()));
     let mut state = AppState::new();
-    let mut app_mode = AppMode::InputIP;
+    let mut app_mode = AppMode::Menu;
     let mut ip_input = String::new();
     let mut list_state = ListState::default();
 
@@ -132,7 +132,7 @@ run(mut terminal: DefaultTerminal) -> io::Result<()>
                 .split(right[1]);
 
             //let mut state = app_state.lock().unwrap();
-            if state.info_data 
+            if state.display_dashboard 
             {                          
                 let mut keys = Vec::<ListItem>::new();
                 for ip in &state.ip_list
@@ -225,7 +225,7 @@ run(mut terminal: DefaultTerminal) -> io::Result<()>
             } 
             //else {drop(state);} //give state back} // data layout
               
-            if let AppMode::InputIP = app_mode 
+            if let AppMode::Menu = app_mode 
             {
                 let screen_size = frame.area();
                 let modal_width = 120;
@@ -347,11 +347,11 @@ run(mut terminal: DefaultTerminal) -> io::Result<()>
                 AppMode::Normal => match key.code {
                     KeyCode::Char('i') => {
                         //let mut state = app_state.lock().unwrap();
-                        state.info_data = false;
+                        state.display_dashboard = false;
                         state.input_text.clear();
                         state.info_text.clear();
                         state.modal_open = true;
-                        app_mode = AppMode::InputIP;
+                        app_mode = AppMode::Menu;
                     }
                     KeyCode::Up => 
                     {
@@ -367,12 +367,12 @@ run(mut terminal: DefaultTerminal) -> io::Result<()>
                     }
                     KeyCode::Esc => {
                         //let mut state = app_state.lock().unwrap();
-                        state.info_data = false;
-                        app_mode = AppMode::InputIP;
+                        state.display_dashboard = false;
+                        app_mode = AppMode::Menu;
                     },
                     _ => {}
                 }
-                AppMode::InputIP => match key.code
+                AppMode::Menu => match key.code
                 {
                     KeyCode::Esc => {
                         //let mut state = app_state.lock().unwrap();
@@ -380,16 +380,61 @@ run(mut terminal: DefaultTerminal) -> io::Result<()>
                         state.info_text.clear();
                         state.modal_open = false;
                         app_mode = AppMode::Normal;
-                        state.info_data = true;
+                        state.display_dashboard = true;
                     }
                     KeyCode::Enter => {
                         //let mut state = app_state.lock().unwrap();
-                        state.info_text.clear();
+                        //state.info_text.clear();
+                        let start_date = parse_date(&state.start_date);
+                        let end_date = parse_date(&state.end_date);
+                        let ip_addr = parse_ip(&state.ip);
+                        let base_dir = parse_base(&state.base_dir); // should always be Some(base)
+                        state.info_text = format!("{:?}{:?}{:?}{:?}",&start_date,&end_date,&ip_addr,&base_dir);
+                        match (start_date,end_date,ip_addr,base_dir)
+                        {
+                            (Some(start),Some(end),Some(ip),Some(base)) => 
+                            {
+                                // all fields correct
+                                state.info_text = format!("{}", "impl all fields correct");
+                            }
+                            (Some(start),None,Some(ip),Some(base)) => 
+                            {
+                                // use start  
+                                state.info_text = format!("{}", "impl start date, no end");
+                            }
+                            (None,Some(end),Some(ip),Some(base)) => 
+                            {
+                                // use end
+                                state.info_text = format!("{}", "impl end date, no start");
+                            }
+                            (None,None,Some(ip),Some(base)) => 
+                            {
+                                // use ip 
+                                state.info_text = format!("{}", "impl ip only check. expensive! do last.");
+                            }
+                            (Some(start),Some(end),None,Some(base)) => 
+                            {
+                                // check end > start. swap if not.
+                                state.info_text = format!("{}", "impl check end > start. swap if not");
+                            }
+                            _ => 
+                            {
+                                //notify the user that they have done something wrong.
+                            }
+                                  
+                        }
+                        /*
                         let data = format!("ip={},start={},end={},base={}",&state.ip,&state.start_date,&state.end_date,&state.base_dir);
                         if let Ok(input_args) = parse_input(&data)
                         {
                             if let Some(start_date) = &input_args.start
                             {
+                                if let Some(end_date) = input_args.end 
+                                {
+                                    let date_strings = generate_dates(&input_args.start.unwrap().to_string(),&input_args.end_date.unwrap().to_string());
+                                    state.info_text = format!("{date_strings:?}");
+                                }
+
                                 let date = format!("{:?}", start_date);
                                 let params = ZeekSearchParamsBuilder::default()
                                     .path_prefix(&*state.base_dir)
@@ -415,11 +460,6 @@ run(mut terminal: DefaultTerminal) -> io::Result<()>
                                     }
                                     state.log_data = log.data;
 
-                                    if let Some(end) = input_args.end 
-                                    {
-                                        let date_strings = generate_dates(&input_args.start.unwrap().to_string(),&input_args.end.unwrap().to_string());
-                                        state.info_text = format!("{date_strings:?}");
-                                    }
                                     //if cfg!(feature = "ip2location") 
                                     //{
                                     //    if let Ok(response) = request(&state.ip.to_string())
@@ -450,6 +490,7 @@ run(mut terminal: DefaultTerminal) -> io::Result<()>
                                 }
                             } 
                         } else {state.modal_open = true;}
+                        */
                     }
                     KeyCode::Backspace => {
                         //let mut state = app_state.lock().unwrap();
@@ -511,37 +552,24 @@ run(mut terminal: DefaultTerminal) -> io::Result<()>
     } // end loop
 }
 
-fn parse_input(input: &str) -> Result<ParsedInput,String> 
+fn 
+parse_ip(input: &str) -> Option<IpAddr> 
 {
-    let parts: Vec<&str> = input.split(',').map(|s| s.trim()).collect();
-    let mut ip: Option<IpAddr> = None;
-    let mut start: Option<NaiveDate> = None;
-    let mut end: Option<NaiveDate> = None;
-    let mut base: Option<String> = None;
-
-    for part in parts {
-        let mut key_value = part.split('=').map(|s| s.trim());
-        let key = key_value.next();
-        let value = key_value.next();
-
-        match (key, value) 
-        {
-            (Some("ip"), Some(ip_str)) if !ip_str.is_empty() => {
-                ip = ip_str.parse().ok();
-            }
-            (Some("start"), Some(start_str)) if !start_str.is_empty() => {
-                start = NaiveDate::parse_from_str(start_str, "%Y-%m-%d").ok();
-            }
-            (Some("end"), Some(end_str)) if !end_str.is_empty() => {
-                end = NaiveDate::parse_from_str(end_str, "%Y-%m-%d").ok();
-            }
-            (Some("base"), Some(base_str)) if !base_str.is_empty() => {
-                base = base_str.parse().ok();
-            }
-            _ => {}
-        }
+    input.trim().parse::<IpAddr>().ok()
+}
+fn 
+parse_date(input: &str) -> Option<NaiveDate>
+{
+    NaiveDate::parse_from_str(input.trim(), "%Y-%m-%d").ok()
+}
+fn
+parse_base(input: &str) -> Option<String>
+{
+    if !input.is_empty()
+    {
+        return input.parse().ok();
     }
-    Ok(ParsedInput{ip,start,end,base})
+    None
 }
 
 fn
