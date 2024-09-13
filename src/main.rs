@@ -1,4 +1,3 @@
-
 use log_analysis::{
     zeek::zeek_search_params::ZeekSearchParamsBuilder, 
     zeek::zeek_log::{ZeekLog,Data},
@@ -32,7 +31,7 @@ struct ParsedInput
     base: Option<String>,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 enum Focus
 {
     IpInput,
@@ -47,7 +46,7 @@ enum AppMode
     Menu, 
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct AppState
 {
     display_dashboard: bool,
@@ -228,7 +227,7 @@ run(mut terminal: DefaultTerminal) -> io::Result<()>
             if let AppMode::Menu = app_mode 
             {
                 let screen_size = frame.area();
-                let modal_width = 120;
+                let modal_width = 90; // give this a dynamic width/height
                 let modal_height = 30;
                 //https://doc.rust-lang.org/core/primitive.u16.html#method.saturating_sub
                 let modal_x = (screen_size.width.saturating_sub(modal_width)) / 2;
@@ -418,6 +417,8 @@ run(mut terminal: DefaultTerminal) -> io::Result<()>
                                 state.info_text = format!("Searching between {} and {}", start, end);
 
                                 // get the first date to work from
+                                // TODO:    Handle log dates that do not exist. 
+                                //          Verify with zeek-cut.
                                 let start_date: &str = &start.format("%Y-%m-%d").to_string();
                                 let end_date: &str = &end.format("%Y-%m-%d").to_string();
 
@@ -428,50 +429,51 @@ run(mut terminal: DefaultTerminal) -> io::Result<()>
                                     .selected_date(start_date)
                                     .build()
                                     .unwrap();
-                                let mut log = ZeekLog::new();
-                                let res = log.search(&params);
-                                assert!(log.data.len() > 0);
+                                let mut main_log = ZeekLog::new();
+                                let res = main_log.search(&params);
 
-                                let len = &log.data.len();
+                                let len_a = &main_log.data.len();
+                                let mut len_b = 0;
+
                                 let empty_data = Data::new(String::from("de.ad.be.ef"));
-                                log.data.insert(String::from("de.ad.be.ef"), empty_data);
-                                assert!(log.data.len() > *len);
-
-                                state.info_text = format!("New test val inserted: {:?}", log.data.get("de.ad.be.ef"));
-
-                                // seal log data in a Arc Mutex and thread
-                                let arc_log_data = Arc::new(Mutex::new(log.data));
-                                let mut handles = Vec::<std::thread::JoinHandle<()>>::new();
+                                main_log.data.insert(String::from("de.ad.be.ef"), empty_data);
 
                                 // once the main functionality is done, swap is start > end.
                                 assert!(start < end);
+
                                 let mut current = start;
-                                while current < end
+                                let mut information = String::new();
+
+                                while current <= end
                                 {
-                                    let mut bound_log_data = arc_log_data.lock().unwrap();
                                     let clone_prefix = path_prefix.clone();
-                                    let handle = std::thread::spawn(move || {
-                                        let curr_date: &str = &current.format("%Y-%m-%d").to_string();
-                                        let params = ZeekSearchParamsBuilder::default()
-                                            .path_prefix(&*clone_prefix)
-                                            .selected_date(curr_date)
-                                            .build()
-                                            .unwrap();
-                                        let mut log = ZeekLog::new();
-                                        let res = log.search(&params);  
-                                        // check IPs against existing list
-                                    });
-                                    //if let Err(h) = handle {continue;} // do something like this
-                                    //if handle fails.
-                                    handles.push(handle);
+                                    let curr_date: &str = &current.format("%Y-%m-%d").to_string();
+                                    let params = ZeekSearchParamsBuilder::default()
+                                        .path_prefix(&*clone_prefix)
+                                        .selected_date(curr_date)
+                                        .build()
+                                        .unwrap();
+                                    let mut new_log = ZeekLog::new();
+                                    let res = new_log.search(&params);  
+
+                                    // check IPs against existing list
+                                    if res.is_ok() 
+                                    {
+                                        for ip in new_log.data.keys()
+                                        {
+                                            if !main_log.data.contains_key(ip) 
+                                            {
+                                                len_b += 1;
+                                            }
+                                        }
+                                    } else {continue;}
+                                    information.push_str(&current.to_string());
                                     current += Duration::days(1);
                                 }
-                                for handle in handles
-                                {
-                                    let _ = handle.join();
-                                }
+
                                 //let dates = generate_dates(start_date,end_date);
-                                //state.info_text = format!("Searching: {:?}",dates);
+                                state.info_text = format!("len_a: {}, found {} new IPs, 
+                                                          info: {:?}", len_a, len_b, information);
                             }
                             (Some(start),None,None,Some(base)) => // start,_,_,base
                             {
