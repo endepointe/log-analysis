@@ -417,8 +417,8 @@ run(mut terminal: DefaultTerminal) -> io::Result<()>
                                 state.info_text = format!("Searching between {} and {}", start, end);
 
                                 // get the first date to work from
-                                // TODO:    Handle log dates that do not exist. 
-                                //          Verify with zeek-cut.
+                                // TODO: 
+                                //  - Verify with zeek-cut.
                                 let start_date: &str = &start.format("%Y-%m-%d").to_string();
                                 let end_date: &str = &end.format("%Y-%m-%d").to_string();
 
@@ -464,16 +464,48 @@ run(mut terminal: DefaultTerminal) -> io::Result<()>
                                             if !main_log.data.contains_key(ip) 
                                             {
                                                 len_b += 1;
+                                                if let Some(data) = new_log.data.get(ip) 
+                                                {
+                                                    main_log.data.insert(ip.to_string(),data.clone());
+                                                }
+                                            } 
+                                            else 
+                                            {
+                                                // combine existing data
+                                                // data:
+                                                //ip_address: String,
+                                                //frequency: usize,
+                                                //connection_uids: Vec<UID>,
+                                                //protocols: Vec<String>,
+                                                //time_ranges: HashMap<String, u32>,
+                                                //file_info: Vec<HashMap<String,String>>,
+                                                //conn_state: Vec::<String>,
+                                                //history: Vec::<String>,
+                                                //dports: Vec<u16>,
+                                                //ip2location: Option<IP2LocationResponse>,
+                                                //malicious: bool, // virustotal?
+                                                //bytes_transferred: u64,
+                                                //related_ips: Vec<String>,
+
                                             }
                                         }
-                                    } else {continue;}
-                                    information.push_str(&current.to_string());
+                                        information.push_str(&current.to_string());
+                                    } 
                                     current += Duration::days(1);
                                 }
-
+                                // probably could do this in the while but MVP needed, not
+                                // perfection.
+                                for ip in main_log.data.keys()
+                                {
+                                    state.ip_list.push(ip.to_string());
+                                }
+                                state.log_data = main_log.data;
                                 //let dates = generate_dates(start_date,end_date);
                                 state.info_text = format!("len_a: {}, found {} new IPs, 
                                                           info: {:?}", len_a, len_b, information);
+                                state.modal_open = false;
+                                app_mode = AppMode::Normal;
+                                state.display_dashboard = true;
                             }
                             (Some(start),None,None,Some(base)) => // start,_,_,base
                             {
