@@ -80,18 +80,10 @@ impl Data
             related_ips: Vec::<String>::new(),
         }
     }
-    pub fn get_ip_address(&self) -> &String
-    {
-        &self.ip_address
-    }
-    fn _increment_frequency(&mut self) 
-    {
-        self.frequency = self.frequency + 1;
-    }
-    pub fn get_frequency(&self) -> usize
-    {
-        self.frequency
-    }
+    pub fn get_ip_address(&self) -> &String {&self.ip_address}
+    pub fn set_frequency(&mut self, val: usize) {self.frequency += val;}
+    fn _increment_frequency(&mut self) {self.frequency = self.frequency + 1;}
+    pub fn get_frequency(&self) -> usize {self.frequency}
     pub fn set_ip2location_data(&mut self, val: Option<IP2LocationResponse>)
     {
         self.ip2location = val;

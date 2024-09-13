@@ -453,21 +453,24 @@ run(mut terminal: DefaultTerminal) -> io::Result<()>
                                         .selected_date(curr_date)
                                         .build()
                                         .unwrap();
-                                    let mut new_log = ZeekLog::new();
-                                    let res = new_log.search(&params);  
+                                    let mut curr_log = ZeekLog::new();
+                                    let res = curr_log.search(&params);  
 
                                     // check IPs against existing list
                                     if res.is_ok() 
                                     {
-                                        for ip in new_log.data.keys()
+                                        // There must be a better way to do this to satisfy
+                                        // borrowchecker.
+                                        let mut from_log_data = curr_log.data.clone();
+                                        for ip in curr_log.data.keys()
                                         {
                                             if !main_log.data.contains_key(ip) 
                                             {
                                                 len_b += 1;
-                                                if let Some(data) = new_log.data.get(ip) 
-                                                {
-                                                    main_log.data.insert(ip.to_string(),data.clone());
-                                                }
+                                                //if let Some(data) = curr_log.data.get(ip) 
+                                                //{
+                                                //    main_log.data.insert(ip.to_string(),data.clone());
+                                                //}
                                             } 
                                             else 
                                             {
@@ -486,7 +489,14 @@ run(mut terminal: DefaultTerminal) -> io::Result<()>
                                                 //malicious: bool, // virustotal?
                                                 //bytes_transferred: u64,
                                                 //related_ips: Vec<String>,
-
+                                                let to_main = main_log.data.get_mut(ip);
+                                                let from_data = from_log_data.get_mut(ip);
+                                                if let (Some(to),Some(from)) = (to_main,from_data) 
+                                                {
+                                                    let freq = from.get_frequency();
+                                                    to.set_frequency(freq);
+                                                }
+                                                //data.set_frequency(curr_log.data.get_frequency()); 
                                             }
                                         }
                                         information.push_str(&current.to_string());
