@@ -497,7 +497,7 @@ impl ZeekLog
     pub fn search(&mut self, params: &ZeekSearchParams) -> Result<(), Error> 
     {
         let search : u8 = params.check();
-        let path = params.get_start_date_path();     
+        let path = params.get_selected_date_path();     
         let path = Path::new(path.as_str());     
         if !path.is_dir() {
             return Err(Error::SearchInvalidStartDate)

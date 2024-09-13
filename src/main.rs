@@ -392,36 +392,124 @@ run(mut terminal: DefaultTerminal) -> io::Result<()>
                         state.info_text = format!("{:?}{:?}{:?}{:?}",&start_date,&end_date,&ip_addr,&base_dir);
                         match (start_date,end_date,ip_addr,base_dir)
                         {
-                            (Some(start),Some(end),Some(ip),Some(base)) => 
+                            (Some(start),Some(end),Some(ip),Some(_base)) => 
                             {
                                 // all fields correct
-                                state.info_text = format!("{}", "impl all fields correct");
+                                state.info_text = format!("Search for {} between {} and {}", ip, start, end);
                             }
-                            (Some(start),None,Some(ip),Some(base)) => 
+                            (Some(start),None,Some(ip),Some(_base)) => 
                             {
                                 // use start  
-                                state.info_text = format!("{}", "impl start date, no end");
+                                state.info_text = format!("Searching for {} on {}.", ip, start);
                             }
-                            (None,Some(end),Some(ip),Some(base)) => 
+                            (None,Some(end),Some(ip),Some(_base)) => 
                             {
                                 // use end
-                                state.info_text = format!("{}", "impl end date, no start");
+                                state.info_text = format!("Searching for {} on {}.", ip, end);
                             }
-                            (None,None,Some(ip),Some(base)) => 
+                            (None,None,Some(ip),Some(_base)) => 
                             {
                                 // use ip 
-                                state.info_text = format!("{}", "impl ip only check. expensive! do last.");
+                                state.info_text = format!("Searching for {} on all dates. This is expensive!", ip);
                             }
                             (Some(start),Some(end),None,Some(base)) => 
                             {
                                 // check end > start. swap if not.
-                                state.info_text = format!("{}", "impl check end > start. swap if not");
+                                state.info_text = format!("Searching between {} and {}", start, end);
+
+                                // get the first date to work from
+                                let start_date: &str = &start.format("%Y-%m-%d").to_string();
+                                let end_date: &str = &end.format("%Y-%m-%d").to_string();
+
+                                let path_prefix = String::from(base);
+
+                                let params = ZeekSearchParamsBuilder::default()
+                                    .path_prefix(&*path_prefix)
+                                    .selected_date(start_date)
+                                    .build()
+                                    .unwrap();
+                                let mut log = ZeekLog::new();
+                                let res = log.search(&params);
+                                assert!(log.data.len() > 0);
+
+                                let len = &log.data.len();
+                                let empty_data = Data::new(String::from("de.ad.be.ef"));
+                                log.data.insert(String::from("de.ad.be.ef"), empty_data);
+                                assert!(log.data.len() > *len);
+
+                                state.info_text = format!("New test val inserted: {:?}", log.data.get("de.ad.be.ef"));
+
+                                // seal log data in a Arc Mutex and thread
+                                let arc_log_data = Arc::new(Mutex::new(log.data));
+                                let mut handles = Vec::<std::thread::JoinHandle<()>>::new();
+
+                                // once the main functionality is done, swap is start > end.
+                                assert!(start < end);
+                                let mut current = start;
+                                while current < end
+                                {
+                                    let mut bound_log_data = arc_log_data.lock().unwrap();
+                                    let clone_prefix = path_prefix.clone();
+                                    let handle = std::thread::spawn(move || {
+                                        let curr_date: &str = &current.format("%Y-%m-%d").to_string();
+                                        let params = ZeekSearchParamsBuilder::default()
+                                            .path_prefix(&*clone_prefix)
+                                            .selected_date(curr_date)
+                                            .build()
+                                            .unwrap();
+                                        let mut log = ZeekLog::new();
+                                        let res = log.search(&params);  
+                                        // check IPs against existing list
+                                    });
+                                    //if let Err(h) = handle {continue;} // do something like this
+                                    //if handle fails.
+                                    handles.push(handle);
+                                    current += Duration::days(1);
+                                }
+                                for handle in handles
+                                {
+                                    let _ = handle.join();
+                                }
+                                //let dates = generate_dates(start_date,end_date);
+                                //state.info_text = format!("Searching: {:?}",dates);
+                            }
+                            (Some(start),None,None,Some(base)) => // start,_,_,base
+                            {
+                                // check end > start. swap if not.
+                                state.info_text = format!("Searching {}.", &start);
+                                let day: &str = &start.format("%Y-%m-%d").to_string();
+                                let base: &str = &base.to_string();
+                                let params = ZeekSearchParamsBuilder::default()
+                                    .path_prefix(base)
+                                    .selected_date(day)
+                                    .build()
+                                    .unwrap();
+                                let mut log = ZeekLog::new();
+                                let res = log.search(&params);
+
+                                assert!(log.data.len() > 0);
+                                if res.is_ok() 
+                                {
+                                    for ip in log.data.keys()
+                                    {
+                                        state.ip_list.push(ip.to_string());
+                                    }
+                                    state.log_data = log.data;
+                                    state.modal_open = false;
+                                    app_mode = AppMode::Normal;
+                                    state.display_dashboard = true;
+                                }
+                            }
+                            (None,Some(end),None,Some(_base)) => 
+                            {
+                                // check end > start. swap if not.
+                                state.info_text = format!("Searching {}.", end);
                             }
                             _ => 
                             {
                                 //notify the user that they have done something wrong.
+                                state.modal_open = true;
                             }
-                                  
                         }
                         /*
                         let data = format!("ip={},start={},end={},base={}",&state.ip,&state.start_date,&state.end_date,&state.base_dir);
@@ -555,17 +643,25 @@ run(mut terminal: DefaultTerminal) -> io::Result<()>
 fn 
 parse_ip(input: &str) -> Option<IpAddr> 
 {
-    input.trim().parse::<IpAddr>().ok()
+    if *&input.len() > 0 
+    {
+        return input.trim().parse::<IpAddr>().ok()    
+    }
+    None
 }
 fn 
 parse_date(input: &str) -> Option<NaiveDate>
 {
-    NaiveDate::parse_from_str(input.trim(), "%Y-%m-%d").ok()
+    if *&input.len() > 0 
+    {
+        return NaiveDate::parse_from_str(input.trim(), "%Y-%m-%d").ok();
+    }
+    None
 }
 fn
 parse_base(input: &str) -> Option<String>
 {
-    if !input.is_empty()
+    if !input.len() > 0
     {
         return input.parse().ok();
     }
@@ -591,6 +687,11 @@ generate_dates(start: &str, end: &str) -> Vec<String>
     }
 
     dates
+}
+
+fn
+run_the_jewels()
+{
 }
 
 fn 

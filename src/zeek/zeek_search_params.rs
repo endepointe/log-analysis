@@ -19,6 +19,8 @@ ZeekSearchParams<'a>
     #[builder(default)]
     pub path_prefix: Option<&'a str>,
     #[builder(default)]
+    pub selected_date: Option<&'a str>,
+    #[builder(default)]
     pub start_date: Option<&'a str>,
     #[builder(default)]
     pub end_date: Option<&'a str>,
@@ -53,7 +55,7 @@ impl<'a> ZeekSearchParams<'a>
         }
     }
 
-    pub fn get_start_date_path(&self) -> String 
+    pub fn get_selected_date_path(&self) -> String 
     {
         let mut search_path = String::new();
 
@@ -61,12 +63,12 @@ impl<'a> ZeekSearchParams<'a>
         {
             search_path.push_str(&self.path_prefix.unwrap());
             search_path.push_str("/");
-            search_path.push_str(&self.start_date.unwrap());
+            search_path.push_str(&self.selected_date.unwrap());
             search_path.push_str("/");
         } 
         else 
         {
-            search_path.push_str(&self.start_date.unwrap());
+            search_path.push_str(&self.selected_date.unwrap());
             search_path.push_str("/");
         }
 
