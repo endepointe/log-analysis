@@ -493,8 +493,14 @@ run(mut terminal: DefaultTerminal) -> io::Result<()>
                                                 let from_data = from_log_data.get_mut(ip);
                                                 if let (Some(to),Some(from)) = (to_main,from_data) 
                                                 {
-                                                    let freq = from.get_frequency();
-                                                    to.set_frequency(freq);
+                                                    //let freq = from.get_frequency();
+                                                    to.set_ip_address(from.get_ip_address().clone());
+                                                    to.set_frequency(from.get_frequency());
+                                                    to.set_ip2location_data(from.get_ip2location_data().clone());
+                                                    let protos: Vec<String> = from.get_protocols().clone();
+                                                    for proto in protos {to.set_protocol(proto);}
+                                                    //protos.append(from.get_protocols());
+
                                                 }
                                                 //data.set_frequency(curr_log.data.get_frequency()); 
                                             }

@@ -80,37 +80,23 @@ impl Data
             related_ips: Vec::<String>::new(),
         }
     }
+    pub fn set_ip_address(&mut self, val: String){self.ip_address = val;}
     pub fn get_ip_address(&self) -> &String {&self.ip_address}
     pub fn set_frequency(&mut self, val: usize) {self.frequency += val;}
     fn _increment_frequency(&mut self) {self.frequency = self.frequency + 1;}
     pub fn get_frequency(&self) -> usize {self.frequency}
-    pub fn set_ip2location_data(&mut self, val: Option<IP2LocationResponse>)
+    pub fn set_ip2location_data(&mut self, val: Option<IP2LocationResponse>) {self.ip2location = val;}
+    pub fn get_ip2location_data(&self) -> &Option<IP2LocationResponse> {&self.ip2location}
+    pub fn set_protocol(&mut self, val: String)
     {
-        self.ip2location = val;
+        if !self.protocols.contains(&val) {self.protocols.push(val);}
     }
-    pub fn get_ip2location_data(&self) -> &Option<IP2LocationResponse>
-    {
-        &self.ip2location
-    }
-    fn set_protocol(&mut self, val: String)
-    {
-        if !self.protocols.contains(&val)
-        {
-            self.protocols.push(val);
-        }
-    }
-    pub fn get_protocols(&self) -> &Vec<String>
-    {
-        &self.protocols
-    }
+    pub fn get_protocols(&self) -> &Vec<String> {&self.protocols}
     fn set_connection_uid(&mut self, val: UID)
     {
-        if !self.connection_uids.contains(&val)
-        {
-            self.connection_uids.push(val);
-        }
+        if !self.connection_uids.contains(&val) {self.connection_uids.push(val);}
     }
-    pub fn get_connection_uids(&self) -> &Vec<String> { &self.connection_uids }
+    pub fn get_connection_uids(&self) -> &Vec<String> {&self.connection_uids}
 
     fn set_file_info(&mut self, t: TS, u: UID, f: FUID, m: MD5, s1: SHA1, s2: SHA256, b: BYTES)
     {
