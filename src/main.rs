@@ -495,12 +495,15 @@ run(mut terminal: DefaultTerminal) -> io::Result<()>
                                                 {
                                                     //let freq = from.get_frequency();
                                                     to.set_ip_address(from.get_ip_address().clone());
-                                                    to.set_frequency(from.get_frequency());
+                                                    //Setting time range increments frequency.
+                                                    //to.set_frequency(from.get_frequency());
                                                     to.set_ip2location_data(from.get_ip2location_data().clone());
                                                     let protos: Vec<String> = from.get_protocols().clone();
                                                     for proto in protos {to.set_protocol(proto);}
-                                                    //protos.append(from.get_protocols());
-
+                                                    let time_ranges: HashMap<String,u32> = from.get_time_range().clone();    
+                                                    for (time,_) in time_ranges {to.set_time_range(time);}
+                                                    //let file_info = from.file_info.clone();
+                                                    to.file_info.extend(from.file_info.clone());  
                                                 }
                                                 //data.set_frequency(curr_log.data.get_frequency()); 
                                             }

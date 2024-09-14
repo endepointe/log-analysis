@@ -42,7 +42,7 @@ fn _get_ip_db() -> Vec<String>
     }
     v
 }
-
+// Might be simpler to make these pub?
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Data
 {
@@ -51,7 +51,7 @@ pub struct Data
     connection_uids: Vec<UID>,
     protocols: Vec<String>,
     time_ranges: HashMap<String, u32>,
-    file_info: Vec<HashMap<String,String>>,
+    pub file_info: Vec<HashMap<String,String>>,
     conn_state: Vec::<String>,
     history: Vec::<String>,
     dports: Vec<u16>,
@@ -112,18 +112,15 @@ impl Data
     }
     pub fn get_file_info(&self) -> &Vec::<HashMap::<String,String>> { &self.file_info }
 
-    fn set_time_range(&mut self, val: String)
+    pub fn set_time_range(&mut self, val: String)
     {
-        if let Some(time) = self.time_ranges.get_mut(&val)
-        {
-            *time = *time + 1;
-        } else 
-        {
-            self.time_ranges.insert(val, 1);
-        }
+        if let Some(time) = self.time_ranges.get_mut(&val) {*time = *time + 1;} 
+        else {self.time_ranges.insert(val, 1);}
         self._increment_frequency();
         assert_eq!(&self.time_ranges.len() <= &self.frequency, true);
     }
+
+    pub fn get_time_range(&self) -> &HashMap<String,u32> {&self.time_ranges} 
     fn set_conn_state(&mut self, val: String)
     {
         if !self.conn_state.contains(&val) 

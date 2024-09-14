@@ -41,7 +41,7 @@ fn _write_to_file()
 
     let params = ZeekSearchParamsBuilder::default()
         .path_prefix("zeek-test-logs")
-        .start_date("2024-07-02")
+        .selected_date("2024-07-10")
         .build()
         .unwrap();
 
@@ -56,7 +56,22 @@ fn _write_to_file()
 
     let params = ZeekSearchParamsBuilder::default()
         .path_prefix("zeek-test-logs")
-        .start_date("2024-07-03")
+        .selected_date("2024-07-11")
+        .build()
+        .unwrap();
+
+    let mut log = ZeekLog::new();
+    let res = log.search(&params);
+    assert!(res.is_ok());
+    assert_eq!(false, log.data.len() == 0);
+    for (ip, _) in &log.data
+    {
+        writeln!(file, "{}", ip).expect("should have written ip address to file");
+    }
+
+    let params = ZeekSearchParamsBuilder::default()
+        .path_prefix("zeek-test-logs")
+        .selected_date("2024-07-12")
         .build()
         .unwrap();
 
