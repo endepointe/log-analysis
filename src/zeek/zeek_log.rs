@@ -20,14 +20,14 @@ use serde::{Serialize, Deserialize};
 use chrono::{DateTime, Utc};
 
 
-type TS = String; 
-type UID = String;
-type FUID = String;
-type MD5 = String;
-type SHA1 = String;
-type SHA256 = String;
-type BYTES = usize;
-type FILETUPLE = (TS,UID,FUID,MD5,SHA1,SHA256,BYTES);
+pub type TS = String; 
+pub type UID = String;
+pub type FUID = String;
+pub type MD5 = String;
+pub type SHA1 = String;
+pub type SHA256 = String;
+pub type BYTES = usize;
+pub type FILETUPLE = (TS,UID,FUID,MD5,SHA1,SHA256,BYTES);
 
 fn _get_ip_db() -> Vec<String>
 {
@@ -42,29 +42,31 @@ fn _get_ip_db() -> Vec<String>
     }
     v
 }
-// Might be simpler to make these pub?
+// Might be simpler to make these pub.
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Data
 {
+    pub epochs: Vec<String>,
     ip_address: String,
-    frequency: usize,
-    connection_uids: Vec<UID>,
-    protocols: Vec<String>,
-    time_ranges: HashMap<String, u32>,
+    pub frequency: usize,
+    pub connection_uids: Vec<UID>,
+    pub protocols: Vec<String>,
+    pub time_ranges: HashMap<String, u32>,
     pub file_info: Vec<HashMap<String,String>>,
-    conn_state: Vec::<String>,
-    history: Vec::<String>,
-    dports: Vec<u16>,
-    ip2location: Option<IP2LocationResponse>,
-    malicious: bool, // virustotal?
-    bytes_transferred: u64,
-    related_ips: Vec<String>,
+    pub conn_state: Vec::<String>,
+    pub history: Vec::<String>,
+    pub dports: Vec<u16>,
+    pub ip2location: Option<IP2LocationResponse>,
+    pub malicious: bool, // virustotal?
+    pub bytes_transferred: u64,
+    pub related_ips: Vec<String>,
 }
 impl Data
 {
     pub fn new(ip_address: String) -> Self 
     {
         Data {
+            epochs: Vec::<String>::new(),
             ip_address,
             frequency: 0,
             connection_uids: Vec::<UID>::new(),
@@ -411,18 +413,20 @@ impl ZeekLog
                         if !map.contains_key(src_ip)
                         {
                             self.data.insert(src_ip.to_string(), Data::new(src_ip.to_string()));
-                            let handle = std::thread::spawn(move || {
-
-                            });
                         } 
                         let d: &mut Data = self.data.get_mut(src_ip).unwrap();
                         d.set_protocol(proto.to_str().to_string());
                         d.set_time_range(timefield.to_string());
                         for (key,val) in timevalue.iter() 
                         {
+                            if key == "ts" && val[0] != "-"
+                            {
+                                d.epochs.push(val[0].to_string());
+                            }
                             if key == "uid" && val[0] != "-"
                             {
-                                d.set_connection_uid(val[0].to_string());
+                                d.connection_uids.push(val[0].to_string());
+                                //d.set_connection_uid(val[0].to_string());
                             }
                             if key == "fuid" && val[0] != "-"
                             {

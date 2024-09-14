@@ -151,21 +151,40 @@ run(mut terminal: DefaultTerminal) -> io::Result<()>
                     if let Some(data) = state.log_data.get(ip) 
                     {                     
 
+                                                // combine existing data
+                                                // data:
+                                                //epcohs: Vec<String>,
+                                                //ip_address: String,
+                                                //frequency: usize,
+                                                //connection_uids: Vec<UID>,
+                                                //protocols: Vec<String>,
+                                                //time_ranges: HashMap<String, u32>,
+                                                //file_info: Vec<HashMap<String,String>>,
+                                                //conn_state: Vec::<String>,
+                                                //history: Vec::<String>,
+                                                //dports: Vec<u16>,
+                                                //ip2location: Option<IP2LocationResponse>,
+                                                //malicious: bool, // virustotal?
+                                                //bytes_transferred: u64,
+                                                //related_ips: Vec<String>,
                         let main_data = format!(
                             "\nIP Address: {}\nFrequency: {}\nConnection UIDs: {:?}
-                            \nProtocols: {:?}\nConnection State: {:?}\nHistory: {:?}
-                            \nDports: {:?}\nMalicious: todo \nBytes Transferred: {}
-                            \nRelated IPs: todo",
+                            \nTime: {:?}\nTime Ranges: {:?}\nProtocols: {:?}
+                            \nConnection State: {:?}\nHistory: {:?}
+                            \nDports: {:?}\nMalicious: {} 
+                            \nBytes Transferred: {}\nRelated IPs: {:?}",
                             data.get_ip_address(),
                             data.get_frequency(),
                             data.get_connection_uids(),
+                            data.epochs,
+                            data.time_ranges,
                             data.get_protocols(),
                             data.get_conn_state(),
                             data.get_history(),
                             data.get_dports(),
-                            //data.get_malicious(),
-                            data.get_bytes_transferred(),
-                            //data.get_related_ips()
+                            data.malicious,
+                            data.bytes_transferred,
+                            data.related_ips
                         );
 
                         let main_data_para = Paragraph::new(main_data)
@@ -419,6 +438,11 @@ run(mut terminal: DefaultTerminal) -> io::Result<()>
                                 // get the first date to work from
                                 // TODO: 
                                 //  - Verify with zeek-cut.
+                                //  - Issue when more than one start date is invalid. 
+                                //      (eg: 2024-07-01 through 2024-07-09 dne. The
+                                //      issue is most likely caused by not repeatedly
+                                //      checking the supplied start date until a valid
+                                //      date is found.
                                 let start_date: &str = &start.format("%Y-%m-%d").to_string();
                                 let end_date: &str = &end.format("%Y-%m-%d").to_string();
 
@@ -476,6 +500,7 @@ run(mut terminal: DefaultTerminal) -> io::Result<()>
                                             {
                                                 // combine existing data
                                                 // data:
+                                                //epochs: Vec<String>,
                                                 //ip_address: String,
                                                 //frequency: usize,
                                                 //connection_uids: Vec<UID>,
@@ -493,6 +518,8 @@ run(mut terminal: DefaultTerminal) -> io::Result<()>
                                                 let from_data = from_log_data.get_mut(ip);
                                                 if let (Some(to),Some(from)) = (to_main,from_data) 
                                                 {
+                                                    to.connection_uids.extend(from.connection_uids.clone());
+                                                    to.epochs.extend(from.epochs.clone());
                                                     //let freq = from.get_frequency();
                                                     to.set_ip_address(from.get_ip_address().clone());
                                                     //Setting time range increments frequency.
@@ -504,6 +531,7 @@ run(mut terminal: DefaultTerminal) -> io::Result<()>
                                                     for (time,_) in time_ranges {to.set_time_range(time);}
                                                     //let file_info = from.file_info.clone();
                                                     to.file_info.extend(from.file_info.clone());  
+                                                    to.conn_state.extend(from.conn_state.clone());
                                                 }
                                                 //data.set_frequency(curr_log.data.get_frequency()); 
                                             }
