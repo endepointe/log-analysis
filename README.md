@@ -27,7 +27,7 @@ Add your ip2location api key and the LOCAL_JSON_DB env variables to `$CARGO_HOME
 
 At this point, you should be able to run the following test: 
 
-`cargo test test_search_000_pass_ip2location --features ip2location -- --nocapture`
+`cargo test test_search_date --features ip2location -- --nocapture`
 
 The setup and testing will improve, bear with me. If you run into any issues, please submit an issue. I am here to help.
 
