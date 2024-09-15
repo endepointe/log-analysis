@@ -29,150 +29,38 @@ pub type SHA256 = String;
 pub type BYTES = usize;
 pub type FILETUPLE = (TS,UID,FUID,MD5,SHA1,SHA256,BYTES);
 
-fn _get_ip_db() -> Vec<String>
-{
-    let mut file = std::fs::File::open("ip.db").expect("ip.db should exist already.");
-    let mut buffer = String::new();
-    file.read_to_string(&mut buffer).expect("should be able to read ip.db");
-    let mut v = Vec::<String>::new();
-    let content: Vec<_> = buffer.split('\n').collect();
-    for line in content
-    {
-        v.push(line.to_string())
-    }
-    v
-}
 // Might be simpler to make these pub.
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub struct Data
+pub struct SummaryData
 {
-    pub epochs: Vec<String>,
     ip_address: String,
-    pub frequency: usize,
-    pub connection_uids: Vec<UID>,
-    pub protocols: Vec<String>,
-    pub time_ranges: HashMap<String, u32>,
-    pub file_info: Vec<HashMap<String,String>>,
-    pub conn_state: Vec::<String>,
-    pub history: Vec::<String>,
-    pub dports: Vec<u16>,
     pub ip2location: Option<IP2LocationResponse>,
-    pub malicious: bool, // virustotal?
-    pub bytes_transferred: u64,
-    pub related_ips: Vec<String>,
 }
-impl Data
+impl SummaryData
 {
     pub fn new(ip_address: String) -> Self 
     {
-        Data {
-            epochs: Vec::<String>::new(),
+        SummaryData {
             ip_address,
-            frequency: 0,
-            connection_uids: Vec::<UID>::new(),
-            protocols: Vec::<String>::new(),
-            time_ranges: HashMap::<String, u32>::new(),
-            file_info: Vec::<HashMap::<String,String>>::new(),
-            conn_state: Vec::<String>::new(),
-            history: Vec::<String>::new(),
-            dports: Vec::<u16>::new(),
             ip2location: None,
-            malicious: true,
-            bytes_transferred: 0,
-            related_ips: Vec::<String>::new(),
         }
     }
-    pub fn set_ip_address(&mut self, val: String){self.ip_address = val;}
+    pub fn set_ip_address(&mut self, val: String){
+        if self.ip_address.len() < 1 {
+            self.ip_address = val;
+        }
+    }
     pub fn get_ip_address(&self) -> &String {&self.ip_address}
-    pub fn set_frequency(&mut self, val: usize) {self.frequency += val;}
-    fn _increment_frequency(&mut self) {self.frequency = self.frequency + 1;}
-    pub fn get_frequency(&self) -> usize {self.frequency}
     pub fn set_ip2location_data(&mut self, val: Option<IP2LocationResponse>) {self.ip2location = val;}
     pub fn get_ip2location_data(&self) -> &Option<IP2LocationResponse> {&self.ip2location}
-    pub fn set_protocol(&mut self, val: String)
-    {
-        if !self.protocols.contains(&val) {self.protocols.push(val);}
-    }
-    pub fn get_protocols(&self) -> &Vec<String> {&self.protocols}
-    fn set_connection_uid(&mut self, val: UID)
-    {
-        if !self.connection_uids.contains(&val) {self.connection_uids.push(val);}
-    }
-    pub fn get_connection_uids(&self) -> &Vec<String> {&self.connection_uids}
-
-    fn set_file_info(&mut self, t: TS, u: UID, f: FUID, m: MD5, s1: SHA1, s2: SHA256, b: BYTES)
-    {
-        let mut map = HashMap::<String,String>::new();
-        map.insert("ts".to_string(), t.to_string());
-        map.insert("uid".to_string(), u.to_string());
-        map.insert("fuid".to_string(), f.to_string());
-        map.insert("md5".to_string(), m.to_string());
-        map.insert("sha1".to_string(), s1.to_string());
-        map.insert("sha256".to_string(), s2.to_string());
-        map.insert("total_size".to_string(), b.to_string());
-        self.file_info.push(map);
-    }
-    pub fn get_file_info(&self) -> &Vec::<HashMap::<String,String>> { &self.file_info }
-
-    pub fn set_time_range(&mut self, val: String)
-    {
-        if let Some(time) = self.time_ranges.get_mut(&val) {*time = *time + 1;} 
-        else {self.time_ranges.insert(val, 1);}
-        self._increment_frequency();
-        assert_eq!(&self.time_ranges.len() <= &self.frequency, true);
-    }
-
-    pub fn get_time_range(&self) -> &HashMap<String,u32> {&self.time_ranges} 
-    fn set_conn_state(&mut self, val: String)
-    {
-        if !self.conn_state.contains(&val) 
-        {
-            self.conn_state.push(val);
-        }
-    }
-    pub fn get_conn_state(&self) -> &Vec<String>
-    {
-        &self.conn_state
-    }
-    fn set_history(&mut self, val: String)
-    {
-        if !self.history.contains(&val) 
-        {
-            self.history.push(val);
-        }
-    }
-    pub fn get_history(&self) -> &Vec<String>
-    {
-        &self.history
-    }
-    fn set_dport(&mut self, val: u16)
-    {
-        self.dports.push(val);
-    }
-    pub fn get_dports(&self) -> &Vec<u16>
-    {
-        &self.dports
-    }
-    fn increment_bytes_transferred(&mut self, val: u64) 
-    {
-        self.bytes_transferred = self.bytes_transferred + val;
-    }
-    pub fn get_bytes_transferred(&self) -> u64
-    {
-        self.bytes_transferred
-    }
-    fn set_related_ip(&mut self, val: String)
-    {
-        todo!();
-    }
 }
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct
 ZeekLog
 {
-    _raw: LogTree,
-    pub data: HashMap<String, Data>,
+    pub raw: LogTree,
+    pub summary: HashMap<String, SummaryData>,
 }
 impl ZeekLog
 {
@@ -181,8 +69,8 @@ impl ZeekLog
     pub fn new() -> Self
     {
         ZeekLog {
-            _raw: BTreeMap::new(),
-            data: HashMap::<String, Data>::new(),
+            raw: BTreeMap::new(),
+            summary: HashMap::<String, SummaryData>::new(),
         }
     }
 
@@ -210,6 +98,7 @@ impl ZeekLog
         // shorter. I would also get better at building with rust. 
         for line in reader.lines() 
         {
+            if header_line > 7 {break;} 
             match header_line
             {
                 0 => {
@@ -258,100 +147,116 @@ impl ZeekLog
                 7 => {
                     // types field. Leaving Skipping unless use case exists. 
                 }
-                8 => {
-                    let mut data: Vec<&str> = Vec::<&str>::new();
-                    data = line.as_ref().expect("values should be refd")
-                        .split(_separator).collect::<Vec<&str>>();
-                    // Load the data based on search_bits
-                    match search_bits
-                    {
-                        0 => {Self::_000(&fields, &data, map);}
-                        4 => {Self::_100(&fields, &data, map, params);}
-                        6 => {
-                            Self::_110(&fields, &data, map, params, 
-                                       ZeekProtocol::read(proto_type[0].as_str()));
-                        }
-                        _ => {}
-                    }
-                    header_line = 0;
-                }
                 _ => {
-                    // Most likely reading the rest of the log file or
-                    // it is not a TSV formatted file.
-                    // Do nothing.
+                    // do nothing.
                 }
             }
             header_line = header_line + 1;
         }
-        Ok(())
-    }
-
-    // data (all)
-    fn _000(fields: &Vec<String>, 
-            data: &Vec<&str>, 
-            map: &mut HashMap<String, Vec<String>>) 
-    {
-        let mut iter = std::iter::zip(fields,data);
-        for (field,item) in iter
+        // reread, if the file is a TSV.
+        let file = std::fs::File::open(p).expect("conn file should exist");
+        let mut d = GzDecoder::new(file);
+        let reader = BufReader::new(d);
+        let mut header_line = 0;
+        if separator_set 
         {
-            if let Some(fielditem) = map.get_mut(field)
+            for line in reader.lines() 
             {
-                fielditem.push(item.to_string());
-            }
-        }
-    }
-    // ip
-    fn _100(fields: &Vec<String>, 
-            data: &Vec<&str>, 
-            map: &mut HashMap<String, Vec<String>>, 
-            params: &ZeekSearchParams) 
-    {
+                if header_line < 8 {
+                    header_line = header_line + 1;
+                    continue;
+                } 
 
-        let src_ip = params.src_ip.unwrap();
-        let mut iter = std::iter::zip(fields,data);
-        for (field,item) in iter
-        {
-            if let Some(mapkey) = map.get_mut(field)
-            {
-                if *item == src_ip
+                let mut data: Vec<&str> = Vec::<&str>::new();
+
+                if let Ok(content) = line.as_ref()
                 {
-                    mapkey.push(item.to_string());
+                    if content.contains("#close") {break;}
                 }
-            }
-        }
-    }
-
-    // ip + proto_type
-    fn _110(fields: &Vec<String>, 
-            data: &Vec<&str>, 
-            map: &mut HashMap<String, Vec<String>>, 
-            params: &ZeekSearchParams,
-            proto: ZeekProtocol) 
-    {        
-        if let Some(t) = &params.proto_type
-        {
-            if ZeekProtocol::read(&t) == proto 
-            {
-                let src_ip = params.src_ip.unwrap();
-                let mut iter = std::iter::zip(fields,data);
+                data = line.as_ref().expect("values should be refd")
+                    .split(_separator).collect::<Vec<&str>>();
+                let mut iter = std::iter::zip(&fields,&data);
                 for (field,item) in iter
                 {
-                    if let Some(mapkey) = map.get_mut(field)
+                    if let Some(fielditem) = map.get_mut(field)
                     {
-                        if *item == src_ip
-                        {
-                            mapkey.push(item.to_string());
-                        }
+                        fielditem.push(item.to_string());
                     }
                 }
             }
         }
+        Ok(())
     }
-    
+
+    // These searches should be the responsibility of the client
+    // functions (TUI).
+    // data (all)
+    //fn _000(fields: &Vec<String>, 
+    //        data: &Vec<&str>, 
+    //        map: &mut HashMap<String, Vec<String>>) 
+    //{
+    //    let mut iter = std::iter::zip(fields,data);
+    //    for (field,item) in iter
+    //    {
+    //        if let Some(fielditem) = map.get_mut(field)
+    //        {
+    //            fielditem.push(item.to_string());
+    //        }
+    //    }
+    //}
+    //// ip
+    //fn _100(fields: &Vec<String>, 
+    //        data: &Vec<&str>, 
+    //        map: &mut HashMap<String, Vec<String>>, 
+    //        params: &ZeekSearchParams) 
+    //{
+
+    //    let src_ip = params.src_ip.unwrap();
+    //    let mut iter = std::iter::zip(fields,data);
+    //    for (field,item) in iter
+    //    {
+    //        if let Some(mapkey) = map.get_mut(field)
+    //        {
+    //            if *item == src_ip
+    //            {
+    //                mapkey.push(item.to_string());
+    //            }
+    //        }
+    //    }
+    //}
+
+    // ip + proto_type
+    //fn _110(fields: &Vec<String>, 
+    //        data: &Vec<&str>, 
+    //        map: &mut HashMap<String, Vec<String>>, 
+    //        params: &ZeekSearchParams,
+    //        proto: ZeekProtocol) 
+    //{        
+    //    if let Some(t) = &params.proto_type
+    //    {
+    //        if ZeekProtocol::read(&t) == proto 
+    //        {
+    //            let src_ip = params.src_ip.unwrap();
+    //            let mut iter = std::iter::zip(fields,data);
+    //            for (field,item) in iter
+    //            {
+    //                if let Some(mapkey) = map.get_mut(field)
+    //                {
+    //                    if *item == src_ip
+    //                    {
+    //                        mapkey.push(item.to_string());
+    //                    }
+    //                }
+    //            }
+    //        }
+    //    }
+    //}
+    ///////////////////////////////////////////////////////////
+
     fn _reduce(&mut self)
     {
         let mut keys_to_remove = Vec::new();
-        for (outer_key, middle_map) in self._raw.iter_mut() 
+        for (outer_key, middle_map) in self.raw.iter_mut() 
         {
             let mut middle_keys_to_remove = Vec::new();
             for (middle_key, inner_map) in middle_map.iter_mut() 
@@ -384,18 +289,16 @@ impl ZeekLog
         }
         for key in keys_to_remove 
         {
-            self._raw.remove(&key);
+            self.raw.remove(&key);
         }
     }
    
     // This should be returned as an overview for the analyst.
     fn _create_overview(&mut self)
     {
-        let arc_raw = Arc::new(Mutex::new(&self._raw));
-        let mut map: HashMap<String, Data> = HashMap::new();
-        let mut handles = Vec::<thread::JoinHandle<()>>::new();
+        let mut map: HashMap<String, SummaryData> = HashMap::new();
 
-        for (proto, protovalue) in &self._raw
+        for (proto, protovalue) in &self.raw
         {
             for (timefield, timevalue) in protovalue.iter()
             {
@@ -412,66 +315,16 @@ impl ZeekLog
                         let src_ip = &value[0].to_string();
                         if !map.contains_key(src_ip)
                         {
-                            self.data.insert(src_ip.to_string(), Data::new(src_ip.to_string()));
+                            self.summary.insert(src_ip.to_string(), SummaryData::new(src_ip.to_string()));
                         } 
-                        let d: &mut Data = self.data.get_mut(src_ip).unwrap();
-                        d.set_protocol(proto.to_str().to_string());
-                        d.set_time_range(timefield.to_string());
-                        for (key,val) in timevalue.iter() 
-                        {
-                            if key == "ts" && val[0] != "-"
-                            {
-                                d.epochs.push(val[0].to_string());
-                            }
-                            if key == "uid" && val[0] != "-"
-                            {
-                                d.connection_uids.push(val[0].to_string());
-                                //d.set_connection_uid(val[0].to_string());
-                            }
-                            if key == "fuid" && val[0] != "-"
-                            {
-                                d.set_file_info(timevalue.get("ts").unwrap()[0].to_string(),
-                                     timevalue.get("uid").unwrap()[0].to_string(),
-                                     timevalue.get("fuid").unwrap()[0].to_string(),
-                                     timevalue.get("md5").unwrap()[0].to_string(),
-                                     timevalue.get("sha1").unwrap()[0].to_string(),
-                                     timevalue.get("sha256").unwrap()[0].to_string(),
-                                     timevalue.get("total_bytes").unwrap()[0].parse::<usize>().unwrap());
-                            }
-
-                            if key == "orig_bytes" && val[0] != "-"
-                            {
-                                d.increment_bytes_transferred(val[0].parse::<u64>()
-                                                              .expect("should be a parsable string"));
-                                d.set_conn_state(timevalue.get("conn_state").unwrap()[0].to_string());
-                                d.set_history(timevalue.get("history").unwrap()[0].to_string());
-                            }
-                            if proto.to_str() == "conn"
-                            {
-                                d.set_conn_state(timevalue.get("conn_state").unwrap()[0].to_string());
-                                d.set_history(timevalue.get("history").unwrap()[0].to_string());
-                            }
-                        }
+                        //let d: &mut SummaryData = self.summary.get_mut(src_ip).unwrap();
+                        
+                        // Add SummaryData as dev progresses.
                     }
                 }
             }
         }
     }
-
-    //TODO: threading 
-    //fn _create_data(&mut self) 
-    //{
-    //    let data_map = Arc::new(Mutex::new(&self._raw));
-    //    let mut handles: Vec<thread::JoinHandle<()>> = Vec::new();
-    //    let results = Arc::new(Mutex::new(Vec::<Data>::new()));
-    //    for data in data_map.lock().unwrap().iter()
-    //    {
-    //    }
-    //    //for handle in handles
-    //    //{
-    //    //    handle.join().unwrap();
-    //    //}
-    //}
 
     pub fn search(&mut self, params: &ZeekSearchParams) -> Result<(), Error> 
     {
@@ -494,23 +347,23 @@ impl ZeekLog
             //////////////////////////////////////////////////////
             let proto = ZeekProtocol::read(p[0]);
 
-            if !self._raw.contains_key(&proto) && !(proto == ZeekProtocol::NONE)
+            if !self.raw.contains_key(&proto) && !(proto == ZeekProtocol::NONE)
             {
                 // To handle post processing easier, convert the inner
                 // vector to a hashmap and return it. 
                 let mut hp = HashMap::<String, HashMap<String, Vec<String>>>::new();
                 hp.insert(p[1].to_string(), HashMap::<String, Vec::<String>>::new());
-                self._raw.insert(proto.clone(), hp);
+                self.raw.insert(proto.clone(), hp);
             }
 
             // Create time range (e.g. 00-01) and use as keys to BTreeMap.
-            if let Some(value) = self._raw.get_mut(&proto) 
+            if let Some(value) = self.raw.get_mut(&proto) 
             {
                 value.insert(p[1].to_string(), HashMap::<String, Vec::<String>>::new());
             }
 
             // Only pass the vector corresponding to the proto.
-            if let Some(t) = self._raw.get_mut(&proto) 
+            if let Some(t) = self.raw.get_mut(&proto) 
             {
                 if let Some(g) = t.get_mut(&p[1].to_string())
                 {
@@ -522,12 +375,13 @@ impl ZeekLog
         }
 
         Self::_reduce(self);
+        //dbg!(&self.raw);
         Self::_create_overview(self);
 
         if cfg!(feature = "ip2location") 
         {
             let mut count = 0;
-            let arc_data = Arc::new(Mutex::new(self.data.clone()));
+            let arc_data = Arc::new(Mutex::new(self.summary.clone()));
             let mut handles = Vec::<thread::JoinHandle<()>>::new();
 
             for (ip,val) in arc_data.lock().unwrap().iter_mut()
@@ -566,7 +420,7 @@ impl ZeekLog
             {
                 handle.join();
             }
-            self.data = Arc::try_unwrap(arc_data).unwrap().into_inner().unwrap();
+            self.summary = Arc::try_unwrap(arc_data).unwrap().into_inner().unwrap();
         } 
 
         return Ok(())

@@ -7,7 +7,8 @@ use derive_builder::Builder;
 // default log path: /usr/local/zeek or /opt/zeek or custom/path/
 // https://docs.zeek.org/en/master/quickstart.html#filesystem-walkthrough
 
-// learn the builder pattern
+//Reconsidering the necessity of start and end. Selecting one date
+//and collecting on the userend is making more sense. 
 #[derive(Debug, Default, Builder)]
 #[builder(setter(into))]
 #[builder(derive(PartialEq, Eq,))]

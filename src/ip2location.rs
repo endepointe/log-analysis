@@ -3,7 +3,7 @@ use std::error::Error;
 use std::sync::{Arc,Mutex};
 
 use crate::zeek::zeek_log_proto::ZeekProtocol;
-use crate::zeek::zeek_log::Data;
+use crate::zeek::zeek_log::SummaryData;
 use crate::types::helpers::print_type_of;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -175,7 +175,8 @@ pub fn request(ip_addr: &String) -> Result<String, String>
 {
     let local_json_db = std::env::var("LOCAL_JSON_DB").unwrap();
     let local_json_db = local_json_db.as_str();
-    if local_json_db == "ip2loc.json"
+    let found: bool = local_json_db == "ip2loc.json";
+    if found  
     {
         use std::io::BufRead;
         let file = std::fs::File::open(local_json_db).expect("local json db should exist"); 

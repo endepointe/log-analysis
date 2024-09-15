@@ -1,6 +1,6 @@
 use log_analysis::{
     zeek::zeek_search_params::ZeekSearchParamsBuilder, 
-    zeek::zeek_log::{ZeekLog,Data},
+    zeek::zeek_log::{ZeekLog,SummaryData},
     zeek::zeek_log_proto::ZeekProtocol,
     types::error::Error,
     types::helpers::print_type_of,
@@ -8,6 +8,9 @@ use log_analysis::{
 use std::io::{self, BufRead};
 use ratatui::prelude::*;
 use ratatui::widgets::*;
+use ratatui::{prelude::*, widgets::canvas::*};
+use ratatui::symbols::Marker;
+
 use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     crossterm::event::{self, KeyCode, KeyEventKind},
@@ -15,7 +18,6 @@ use ratatui::{
     widgets::{Borders, Paragraph, Block, List, ListItem, ListState, Wrap},
     DefaultTerminal,
 };
-
 use log_analysis::ip2location::{request,IP2LocationResponse};
 use std::sync::{Arc,Mutex};
 use std::net::IpAddr;
@@ -54,7 +56,7 @@ struct AppState
     input_text: String,
     info_text: String,
     ip_list: Vec<String>,
-    log_data: HashMap<String, Data>,
+    log_data: HashMap<String, SummaryData>,
     ip2loc_info: String,
     modal_open: bool,
     focus: Focus,
@@ -116,19 +118,20 @@ run(mut terminal: DefaultTerminal) -> io::Result<()>
                 .direction(Direction::Horizontal)
                 .constraints(vec![
                     Constraint::Max(30),
-                    Constraint::Percentage(75),
+                    Constraint::Percentage(90),
                 ])
                 .split(frame.area());
 
             let right = Layout::default()
                 .direction(Direction::Vertical)
-                .constraints([Constraint::Percentage(60), Constraint::Percentage(40)].as_ref())
+                //.constraints([Constraint::Percentage(40), Constraint::Percentage(60)].as_ref())
+                .constraints([Constraint::Percentage(100)].as_ref())
                 .split(layout[1]);
 
-            let bottom = Layout::default()
+            let right_split = Layout::default()
                 .direction(Direction::Horizontal)
-                .constraints([Constraint::Percentage(40), Constraint::Percentage(60)].as_ref())
-                .split(right[1]);
+                .constraints([Constraint::Percentage(20), Constraint::Percentage(80)].as_ref())
+                .split(right[0]);
 
             //let mut state = app_state.lock().unwrap();
             if state.display_dashboard 
@@ -150,46 +153,16 @@ run(mut terminal: DefaultTerminal) -> io::Result<()>
                 {
                     if let Some(data) = state.log_data.get(ip) 
                     {                     
-
-                                                // combine existing data
-                                                // data:
-                                                //epcohs: Vec<String>,
-                                                //ip_address: String,
-                                                //frequency: usize,
-                                                //connection_uids: Vec<UID>,
-                                                //protocols: Vec<String>,
-                                                //time_ranges: HashMap<String, u32>,
-                                                //file_info: Vec<HashMap<String,String>>,
-                                                //conn_state: Vec::<String>,
-                                                //history: Vec::<String>,
-                                                //dports: Vec<u16>,
-                                                //ip2location: Option<IP2LocationResponse>,
-                                                //malicious: bool, // virustotal?
-                                                //bytes_transferred: u64,
-                                                //related_ips: Vec<String>,
                         let main_data = format!(
-                            "\nIP Address: {}\nFrequency: {}\nConnection UIDs: {:?}
-                            \nTime: {:?}\nTime Ranges: {:?}\nProtocols: {:?}
-                            \nConnection State: {:?}\nHistory: {:?}
-                            \nDports: {:?}\nMalicious: {} 
-                            \nBytes Transferred: {}\nRelated IPs: {:?}",
-                            data.get_ip_address(),
-                            data.get_frequency(),
-                            data.get_connection_uids(),
-                            data.epochs,
-                            data.time_ranges,
-                            data.get_protocols(),
-                            data.get_conn_state(),
-                            data.get_history(),
-                            data.get_dports(),
-                            data.malicious,
-                            data.bytes_transferred,
-                            data.related_ips
+                            "\nIP Address: {}",data.get_ip_address()
                         );
 
                         let main_data_para = Paragraph::new(main_data)
-                            .block(Block::default().borders(Borders::ALL).title("General Data"));
-                        frame.render_widget(main_data_para, right[0]);
+                            .block(Block::default().borders(Borders::ALL).title("General SummaryData"));
+                        //frame.render_widget(main_data_para, right[0]);
+
+                        let mut lat = 0.0;
+                        let mut lon = 0.0;
                         if cfg!(feature = "ip2location") 
                         {
                            
@@ -197,6 +170,8 @@ run(mut terminal: DefaultTerminal) -> io::Result<()>
                         {
                             Some(data) => {
                                 let none = String::from("");
+                                lat = data.get_latitude().as_ref().unwrap_or(&"0.0".to_string()).parse::<f32>().unwrap();
+                                lon = data.get_longitude().as_ref().unwrap_or(&"0.0".to_string()).parse::<f32>().unwrap();
                                 format!("\nip: {:?}\ncountry_code: {:?}\nregion_name: {:?}
                                     \ncity_name: {:?}\nlatitude: {:?}\nlongitude: {:?}
                                     \nzip_code: {:?}\ntime_zone: {:?}\nauto_system_num: {:?}
@@ -215,33 +190,32 @@ run(mut terminal: DefaultTerminal) -> io::Result<()>
                             None => "none".to_string(),
                         };
                         let ip2location_para = Paragraph::new(ip2location_data)
-                            .block(Block::default().borders(Borders::ALL).title("IP2Location Data"))
+                            .block(Block::default().borders(Borders::ALL).title("IP2Location SummaryData"))
                             .wrap(Wrap {trim: true });
-                        frame.render_widget(ip2location_para, bottom[0]);
+                        frame.render_widget(ip2location_para, right_split[0]);
                         }
-                       
-                        let mut filehash_formatted_data = Vec::<String>::new();
-                        for file in data.get_file_info()
-                        {
-                            for (key,val) in file.iter()
-                            {
-                                let s = format!("\n{key}: {val}");
-                                filehash_formatted_data.push(s);
-                            }                    
-                        }
-                        if !filehash_formatted_data.is_empty()
-                        {
-                            filehash_formatted_data.push("\n-------------------------".to_string());
-                        }
-                        let filehash_data = filehash_formatted_data.join(" ");
 
-                        let filehash_para = Paragraph::new(filehash_data)
-                            .block(Block::default().borders(Borders::ALL).title("File Hash Data"));
-                        frame.render_widget(filehash_para, bottom[1]);
+                        let some_para = Paragraph::new(String::from("placeholder"))
+                            .block(Block::default().borders(Borders::ALL).title("SummaryData"));
+
+                        let canvas = Canvas::default()
+                            .block(Block::bordered().title("World"))
+                            .marker(Marker::Dot)
+                            .paint(|ctx| {
+                                ctx.draw(&Map {
+                                    color: Color::Green,
+                                    resolution: MapResolution::High,
+                                });
+
+                                ctx.print(lon.into(), lat.into(), data.get_ip_address().clone().yellow());
+                            })
+                            .x_bounds([-180.0, 180.0])
+                            .y_bounds([-90.0, 90.0]);
+
+                        frame.render_widget(canvas, right_split[1]);
                     }
                 }
             } 
-            //else {drop(state);} //give state back} // data layout
               
             if let AppMode::Menu = app_mode 
             {
@@ -456,11 +430,8 @@ run(mut terminal: DefaultTerminal) -> io::Result<()>
                                 let mut main_log = ZeekLog::new();
                                 let res = main_log.search(&params);
 
-                                let len_a = &main_log.data.len();
-                                let mut len_b = 0;
-
-                                let empty_data = Data::new(String::from("de.ad.be.ef"));
-                                main_log.data.insert(String::from("de.ad.be.ef"), empty_data);
+                                let empty_data = SummaryData::new(String::from("de.ad.be.ef"));
+                                main_log.summary.insert(String::from("de.ad.be.ef"), empty_data);
 
                                 // once the main functionality is done, swap is start > end.
                                 assert!(start < end);
@@ -485,56 +456,36 @@ run(mut terminal: DefaultTerminal) -> io::Result<()>
                                     {
                                         // There must be a better way to do this to satisfy
                                         // borrowchecker.
-                                        let mut from_log_data = curr_log.data.clone();
-                                        for ip in curr_log.data.keys()
+                                        let mut from_log_data = curr_log.summary.clone();
+                                        for ip in curr_log.summary.keys()
                                         {
-                                            if !main_log.data.contains_key(ip) 
+                                            if !main_log.summary.contains_key(ip) 
                                             {
-                                                len_b += 1;
-                                                //if let Some(data) = curr_log.data.get(ip) 
-                                                //{
-                                                //    main_log.data.insert(ip.to_string(),data.clone());
-                                                //}
-                                            } 
-                                            else 
-                                            {
-                                                // combine existing data
-                                                // data:
-                                                //epochs: Vec<String>,
-                                                //ip_address: String,
-                                                //frequency: usize,
-                                                //connection_uids: Vec<UID>,
-                                                //protocols: Vec<String>,
-                                                //time_ranges: HashMap<String, u32>,
-                                                //file_info: Vec<HashMap<String,String>>,
-                                                //conn_state: Vec::<String>,
-                                                //history: Vec::<String>,
-                                                //dports: Vec<u16>,
-                                                //ip2location: Option<IP2LocationResponse>,
-                                                //malicious: bool, // virustotal?
-                                                //bytes_transferred: u64,
-                                                //related_ips: Vec<String>,
-                                                let to_main = main_log.data.get_mut(ip);
-                                                let from_data = from_log_data.get_mut(ip);
-                                                if let (Some(to),Some(from)) = (to_main,from_data) 
+                                                if let Some(data) = curr_log.summary.get(ip) 
                                                 {
-                                                    to.connection_uids.extend(from.connection_uids.clone());
-                                                    to.epochs.extend(from.epochs.clone());
-                                                    //let freq = from.get_frequency();
-                                                    to.set_ip_address(from.get_ip_address().clone());
-                                                    //Setting time range increments frequency.
-                                                    //to.set_frequency(from.get_frequency());
-                                                    to.set_ip2location_data(from.get_ip2location_data().clone());
-                                                    let protos: Vec<String> = from.get_protocols().clone();
-                                                    for proto in protos {to.set_protocol(proto);}
-                                                    let time_ranges: HashMap<String,u32> = from.get_time_range().clone();    
-                                                    for (time,_) in time_ranges {to.set_time_range(time);}
-                                                    //let file_info = from.file_info.clone();
-                                                    to.file_info.extend(from.file_info.clone());  
-                                                    to.conn_state.extend(from.conn_state.clone());
+                                                    main_log.summary.insert(ip.to_string(),data.clone());
                                                 }
-                                                //data.set_frequency(curr_log.data.get_frequency()); 
-                                            }
+                                            } 
+                                            //else 
+                                            //{
+                                            //    let to_main = main_log.summary.get_mut(ip);
+                                            //    let from_data = from_log_data.get_mut(ip);
+                                            //    if let (Some(to),Some(from)) = (to_main,from_data) 
+                                            //    {
+                                            //        to.set_ip_address(from.get_ip_address().clone());
+                                            //        //Setting time range increments frequency.
+                                            //        //to.set_frequency(from.get_frequency());
+                                            //        to.set_ip2location_data(from.get_ip2location_data().clone());
+                                            //        let protos: Vec<String> = from.get_protocols().clone();
+                                            //        for proto in protos {to.set_protocol(proto);}
+                                            //        let time_ranges: HashMap<String,u32> = from.get_time_range().clone();    
+                                            //        for (time,_) in time_ranges {to.set_time_range(time);}
+                                            //        //let file_info = from.file_info.clone();
+                                            //        to.file_info.extend(from.file_info.clone());  
+                                            //        to.conn_state.extend(from.conn_state.clone());
+                                            //    }
+                                            //    //data.set_frequency(curr_log.summary.get_frequency()); 
+                                            //}
                                         }
                                         information.push_str(&current.to_string());
                                     } 
@@ -542,14 +493,13 @@ run(mut terminal: DefaultTerminal) -> io::Result<()>
                                 }
                                 // probably could do this in the while but MVP needed, not
                                 // perfection.
-                                for ip in main_log.data.keys()
+                                for ip in main_log.summary.keys()
                                 {
                                     state.ip_list.push(ip.to_string());
                                 }
-                                state.log_data = main_log.data;
+                                state.log_data = main_log.summary;
                                 //let dates = generate_dates(start_date,end_date);
-                                state.info_text = format!("len_a: {}, found {} new IPs, 
-                                                          info: {:?}", len_a, len_b, information);
+                                state.info_text = format!("info: {:?}", information);
                                 state.modal_open = false;
                                 app_mode = AppMode::Normal;
                                 state.display_dashboard = true;
@@ -568,14 +518,14 @@ run(mut terminal: DefaultTerminal) -> io::Result<()>
                                 let mut log = ZeekLog::new();
                                 let res = log.search(&params);
 
-                                assert!(log.data.len() > 0);
+                                assert!(log.summary.len() > 0);
                                 if res.is_ok() 
                                 {
-                                    for ip in log.data.keys()
+                                    for ip in log.summary.keys()
                                     {
                                         state.ip_list.push(ip.to_string());
                                     }
-                                    state.log_data = log.data;
+                                    state.log_data = log.summary;
                                     state.modal_open = false;
                                     app_mode = AppMode::Normal;
                                     state.display_dashboard = true;
@@ -623,11 +573,11 @@ run(mut terminal: DefaultTerminal) -> io::Result<()>
                                 } 
                                 else 
                                 {
-                                    for ip in log.data.keys()
+                                    for ip in log.summary.keys()
                                     {
                                         state.ip_list.push(ip.to_string());
                                     }
-                                    state.log_data = log.data;
+                                    state.log_data = log.summary;
 
                                     //if cfg!(feature = "ip2location") 
                                     //{

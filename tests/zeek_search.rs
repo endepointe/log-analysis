@@ -41,45 +41,45 @@ fn _write_to_file()
 
     let params = ZeekSearchParamsBuilder::default()
         .path_prefix("zeek-test-logs")
-        .selected_date("2024-07-10")
+        .selected_date("2024-07-02")
         .build()
         .unwrap();
 
     let mut log = ZeekLog::new();
     let res = log.search(&params);
     assert!(res.is_ok());
-    assert_eq!(false, log.data.len() == 0);
-    for (ip, _) in &log.data
+    assert_eq!(false, log.summary.len() == 0);
+    for (ip, _) in &log.summary
     {
         writeln!(file, "{}", ip).expect("should have written ip address to file");
     }
 
     let params = ZeekSearchParamsBuilder::default()
         .path_prefix("zeek-test-logs")
-        .selected_date("2024-07-11")
+        .selected_date("2024-07-03")
         .build()
         .unwrap();
 
     let mut log = ZeekLog::new();
     let res = log.search(&params);
     assert!(res.is_ok());
-    assert_eq!(false, log.data.len() == 0);
-    for (ip, _) in &log.data
+    assert_eq!(false, log.summary.len() == 0);
+    for (ip, _) in &log.summary
     {
         writeln!(file, "{}", ip).expect("should have written ip address to file");
     }
 
     let params = ZeekSearchParamsBuilder::default()
         .path_prefix("zeek-test-logs")
-        .selected_date("2024-07-12")
+        .selected_date("2024-07-04")
         .build()
         .unwrap();
 
     let mut log = ZeekLog::new();
     let res = log.search(&params);
     assert!(res.is_ok());
-    assert_eq!(false, log.data.len() == 0);
-    for (ip, _) in &log.data
+    assert_eq!(false, log.summary.len() == 0);
+    for (ip, _) in &log.summary
     {
         writeln!(file, "{}", ip).expect("should have written ip address to file");
     }
@@ -93,7 +93,7 @@ fn _write_to_file()
 fn test_create_log()
 {
     let dir = ZeekLog::new();
-    assert_eq!(true, dir.data.is_empty());
+    assert_eq!(true, dir.summary.is_empty());
     let params = ZeekSearchParamsBuilder::default()
         .path_prefix("zeek-test-logs")
         .start_date("2024-07")
@@ -113,6 +113,25 @@ fn test_search_params()
 }
 
 #[test]
+fn test_search_date()
+{
+    let params = ZeekSearchParamsBuilder::default()
+        .path_prefix("zeek-test-logs")
+        .selected_date("2024-07-03")
+        .build()
+        .unwrap();
+
+    let mut log = ZeekLog::new();
+    let res = log.search(&params);
+    //dbg!(&res);
+    assert!(res.is_ok());
+    //dbg!(&log.summary);
+    //assert_eq!(false, log.summary.len() == 0);
+    dbg!(&log.summary.keys());
+    dbg!(&log.raw.keys());
+}
+
+#[test]
 #[cfg(feature = "ip2location")]
 fn test_search_000_pass_ip2location()
 {
@@ -126,9 +145,9 @@ fn test_search_000_pass_ip2location()
     let res = log.search(&params);
     //dbg!(&res);
     assert!(res.is_ok());
-    //dbg!(&log.data);
-    assert_eq!(false, log.data.len() == 0);
-    dbg!(log.data);
+    //dbg!(&log.summary);
+    assert_eq!(false, log.summary.len() == 0);
+    dbg!(log.summary);
 }
 
 #[test]
@@ -144,9 +163,9 @@ fn test_search_000_pass()
     let res = log.search(&params);
     //dbg!(&res);
     assert!(res.is_ok());
-    //dbg!(&log.data);
-    assert_eq!(false, log.data.len() == 0);
-    dbg!(log.data);
+    //dbg!(&log.summary);
+    assert_eq!(false, log.summary.len() == 0);
+    dbg!(log.summary);
 }
 
 #[test]
@@ -176,9 +195,9 @@ fn test_search_000_fail()
 //    let res = log.search(&params);
 //    //dbg!(&res);
 //    assert!(res.is_ok());
-//    //dbg!(&log.data);
-//    assert_eq!(false, log.data.len() == 0);
-//    dbg!(log.data);
+//    //dbg!(&log.summary);
+//    assert_eq!(false, log.summary.len() == 0);
+//    dbg!(log.summary);
 //}
 
 #[test]
@@ -193,8 +212,8 @@ fn test_search_100_pass()
     let mut log = ZeekLog::new();
     let res = log.search(&params);
     assert!(res.is_ok());
-    assert_eq!(false, log.data.len() == 0);
-    dbg!(log.data);
+    assert_eq!(false, log.summary.len() == 0);
+    dbg!(log.summary);
 
     let params = ZeekSearchParamsBuilder::default()
         .path_prefix("~/dev/log-analysis/zeek-test-logs")
@@ -205,8 +224,8 @@ fn test_search_100_pass()
     let mut log = ZeekLog::new();
     let res = log.search(&params);
     assert!(res.is_ok());
-    assert_eq!(false, log.data.len() == 0);
-    //dbg!(log.data);
+    assert_eq!(false, log.summary.len() == 0);
+    //dbg!(log.summary);
 }
 
 #[test]
@@ -236,8 +255,8 @@ fn test_search_110_pass()
     let mut log = ZeekLog::new();
     let res = log.search(&params);
     assert!(res.is_ok());
-    assert_eq!(false, log.data.len() == 0);
-    //dbg!(log.data);
+    assert_eq!(false, log.summary.len() == 0);
+    //dbg!(log.summary);
 }
 
 #[test]
@@ -252,6 +271,6 @@ fn test_search_110_fail()
         .unwrap();
     let mut log = ZeekLog::new();
     let res = log.search(&params);
-    assert_eq!(true, log.data.len() == 0);
-    //dbg!(log.data);
+    assert_eq!(true, log.summary.len() == 0);
+    //dbg!(log.summary);
 }

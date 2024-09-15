@@ -2,56 +2,18 @@
 
 Rust library designed for extracting relevant information from zeek logs.
 
+
+![Demo](demo.gif)
+
+
 ## Installation
 
 `cargo add log-analysis`
 
-## Usage (See TEsTing)
+## Usage (also See TEsTing)
 
-Return an overview of that day:
-```rust
-// Data format returned: 
-//struct Data
-//{
-//    ip_address: String,
-//    frequency: usize,
-//    connection_uids: Vec<UID>,
-//    protocols: Vec<String>,
-//    time_ranges: HashMap<String, u32>,
-//    file_info: Vec<HashMap<String,String>>,
-//    conn_state: Vec::<String>,
-//    history: Vec::<String>,
-//    dports: Vec<u16>,
-//    ip2location: Option<IP2LocationResponse>,
-//    malicious: bool, // virustotal
-//    bytes_transferred: u64,
-//    related_ips: Vec<String>,
-//}
-
-let params = ZeekSearchParamsBuilder::default()
-    .path_prefix("zeek-test-logs")
-    .start_date("2024-07-02")
-    .build()
-    .unwrap();
-let mut log = ZeekLog::new();
-let res = log.search(&params); // Ok(())
-assert_eq!(true, res.is_ok));
-assert_eq!(false, log.data.is_empty())
-```
-
-Return specific data(fails tests, issue exists):
-```rust
-let params = ZeekSearchParamsBuilder::default()
-    .path_prefix("zeek-test-logs")
-    .start_date("2024-07-02")
-    .src_ip("43.134.231.178")
-    .proto_type("coNn")
-    .build()
-    .unwrap();
-let mut log = ZeekLog::new();
-let res = log.search(&params); // Ok(())
-assert_eq!(true, res.is_ok));
-assert_eq!(false, log.data.is_empty())
+```bash
+cargo run --features ip2location
 ```
 ## TEsTing
 
