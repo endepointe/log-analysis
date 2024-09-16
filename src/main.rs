@@ -113,220 +113,7 @@ run(mut terminal: DefaultTerminal) -> io::Result<()>
 
     loop 
     {
-        terminal.draw(|frame| {
-            let layout = Layout::default()
-                .direction(Direction::Horizontal)
-                .constraints(vec![
-                    Constraint::Max(30),
-                    Constraint::Percentage(90),
-                ])
-                .split(frame.area());
-
-            let right = Layout::default()
-                .direction(Direction::Vertical)
-                //.constraints([Constraint::Percentage(40), Constraint::Percentage(60)].as_ref())
-                .constraints([Constraint::Percentage(100)].as_ref())
-                .split(layout[1]);
-
-            let right_split = Layout::default()
-                .direction(Direction::Horizontal)
-                .constraints([Constraint::Percentage(20), Constraint::Percentage(80)].as_ref())
-                .split(right[0]);
-
-            //let mut state = app_state.lock().unwrap();
-            if state.display_dashboard 
-            {                          
-                let mut keys = Vec::<ListItem>::new();
-                for ip in &state.ip_list
-                {
-                    keys.push(ListItem::new(ip.to_string()));
-                }
-
-                let ip_keys = List::new(keys)
-                    .block(Block::default().borders(Borders::ALL).title("IP Addressses"))
-                    .highlight_style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD));
-                let index = state.index;
-                state.list_state.select(Some(index));
-                frame.render_stateful_widget(ip_keys, layout[0], &mut state.list_state);
-
-                if let Some(ip) = state.ip_list.get(state.index)
-                {
-                    if let Some(data) = state.log_data.get(ip) 
-                    {                     
-                        let main_data = format!(
-                            "\nIP Address: {}",data.get_ip_address()
-                        );
-
-                        let main_data_para = Paragraph::new(main_data)
-                            .block(Block::default().borders(Borders::ALL).title("General SummaryData"));
-                        //frame.render_widget(main_data_para, right[0]);
-
-                        let mut lat = 0.0;
-                        let mut lon = 0.0;
-                        if cfg!(feature = "ip2location") 
-                        {
-                           
-                        let ip2location_data = match data.get_ip2location_data()
-                        {
-                            Some(data) => {
-                                let none = String::from("");
-                                lat = data.get_latitude().as_ref().unwrap_or(&"0.0".to_string()).parse::<f32>().unwrap();
-                                lon = data.get_longitude().as_ref().unwrap_or(&"0.0".to_string()).parse::<f32>().unwrap();
-                                format!("\nip: {:?}\ncountry_code: {:?}\nregion_name: {:?}
-                                    \ncity_name: {:?}\nlatitude: {:?}\nlongitude: {:?}
-                                    \nzip_code: {:?}\ntime_zone: {:?}\nauto_system_num: {:?}
-                                    \nauto_system_name: {:?}\nis_proxy: {:?}", data.get_ip().as_ref().unwrap_or(&none), 
-                                    data.get_country_code().as_ref().unwrap_or(&none),
-                                    data.get_region_name().as_ref().unwrap_or(&none),
-                                    data.get_city_name().as_ref().unwrap_or(&none), 
-                                    data.get_latitude().as_ref().unwrap_or(&none), 
-                                    data.get_longitude().as_ref().unwrap_or(&none),
-                                    data.get_zip_code().as_ref().unwrap_or(&none),
-                                    data.get_time_zone().as_ref().unwrap_or(&none),
-                                    data.get_auto_system_num().as_ref().unwrap_or(&none),
-                                    data.get_auto_system_name().as_ref().unwrap_or(&none),
-                                    data.get_is_proxy().as_ref().unwrap_or(&none))
-                            }
-                            None => "none".to_string(),
-                        };
-                        let ip2location_para = Paragraph::new(ip2location_data)
-                            .block(Block::default().borders(Borders::ALL).title("IP2Location SummaryData"))
-                            .wrap(Wrap {trim: true });
-                        frame.render_widget(ip2location_para, right_split[0]);
-                        }
-
-                        let some_para = Paragraph::new(String::from("placeholder"))
-                            .block(Block::default().borders(Borders::ALL).title("SummaryData"));
-
-                        let canvas = Canvas::default()
-                            .block(Block::bordered().title("World"))
-                            .marker(Marker::Dot)
-                            .paint(|ctx| {
-                                ctx.draw(&Map {
-                                    color: Color::Green,
-                                    resolution: MapResolution::High,
-                                });
-
-                                ctx.print(lon.into(), lat.into(), data.get_ip_address().clone().yellow());
-                            })
-                            .x_bounds([-180.0, 180.0])
-                            .y_bounds([-90.0, 90.0]);
-
-                        frame.render_widget(canvas, right_split[1]);
-                    }
-                }
-            } 
-              
-            if let AppMode::Menu = app_mode 
-            {
-                let screen_size = frame.area();
-                let modal_width = 90; // give this a dynamic width/height
-                let modal_height = 30;
-                //https://doc.rust-lang.org/core/primitive.u16.html#method.saturating_sub
-                let modal_x = (screen_size.width.saturating_sub(modal_width)) / 2;
-                let modal_y = (screen_size.height.saturating_sub(modal_height)) / 2;
-
-                let modal = Block::default()
-                    .title("Enter IP / Start date / End date")
-                    .borders(Borders::ALL)
-                    .style(Style::default().fg(Color::White).bg(Color::Black).add_modifier(Modifier::BOLD));
-
-                let modal_block = Rect::new(modal_x, modal_y, modal_width, modal_height); 
-                frame.render_widget(Clear, modal_block);
-                frame.render_widget(modal, modal_block);
-
-                let inner_layout = Layout::default()
-                    .direction(Direction::Horizontal)
-                    .constraints([Constraint::Percentage(50), Constraint::Percentage(50)].as_ref())
-                    .split(modal_block);
-
-                let left_col = Layout::default()
-                    .direction(Direction::Vertical)
-                    .constraints([Constraint::Length(4), Constraint::Length(4), 
-                                 Constraint::Length(4), Constraint::Length(4)].as_ref())
-                    .split(inner_layout[0]);
-
-                let right_col = Layout::default()
-                    .direction(Direction::Horizontal)
-                    .constraints([Constraint::Percentage(100)].as_ref())
-                    .split(inner_layout[1]);
-
-                let draw_input_box = |title: Option<&str>, text: &str, is_focused: bool| -> Paragraph {
-                    let input_style = if is_focused {
-                        Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)
-                    } else {
-                        Style::default().fg(Color::White)
-                    };
-                    
-                    if let Some(title) = title 
-                    {
-                        Paragraph::new(Span::styled(
-                            format!("{}: {}", title, text),
-                            input_style,
-                        ))
-                        .block(Block::default().borders(Borders::ALL))
-                        .alignment(Alignment::Left)
-                        .wrap(Wrap {trim: true })
-                    }
-                    else 
-                    {
-                        Paragraph::new(Span::styled(
-                            format!("{}", text),
-                            input_style,
-                        ))
-                        .block(Block::default().borders(Borders::ALL))
-                        .alignment(Alignment::Left)
-                        .wrap(Wrap {trim: true })
-                    }
-                };
-
-                //let mut state = app_state.lock().unwrap();
-                frame.render_widget(
-                    draw_input_box(Some("IP address"), &state.ip, state.focus == Focus::IpInput),
-                    left_col[0],
-                );
-                frame.render_widget(
-                    draw_input_box(Some("Start Date"), &state.start_date, state.focus == Focus::StartInput),
-                    left_col[1],
-                );
-                frame.render_widget(
-                    draw_input_box(Some("End Date"), &state.end_date, state.focus == Focus::EndInput),
-                    left_col[2],
-                );
-                frame.render_widget(
-                    draw_input_box(Some("Base Dir"), &state.base_dir, state.focus == Focus::BaseDirInput),
-                    left_col[3],
-                );
-                frame.render_widget(
-                    draw_input_box(None, &state.info_text, false),
-                    right_col[0],
-                );
-                match state.focus
-                {
-                    Focus::IpInput => {
-                        let cursor_x = left_col[0].x + 13 + state.ip.len() as u16;
-                        let cursor_y = left_col[0].y + 1;
-                        frame.set_cursor(cursor_x,cursor_y);
-                    }
-                    Focus::StartInput => {
-                        let cursor_x = left_col[1].x + 13 + state.start_date.len() as u16;
-                        let cursor_y = left_col[1].y + 1;
-                        frame.set_cursor(cursor_x,cursor_y);
-                    }
-                    Focus::EndInput => {
-                        let cursor_x = left_col[2].x + 11 + state.end_date.len() as u16;
-                        let cursor_y = left_col[2].y + 1;
-                        frame.set_cursor(cursor_x,cursor_y);
-                    }
-                    Focus::BaseDirInput => {
-                        let cursor_x = left_col[3].x + 11 + state.base_dir.len() as u16;
-                        let cursor_y = left_col[3].y + 1;
-                        frame.set_cursor(cursor_x,cursor_y);
-                    }
-                    _ => {}
-                }
-            }
-        })?; // end terminal draw
+        terminal.draw(|frame| ui(frame, &mut state, &app_mode, &list_state))?;
 
         if let event::Event::Key(key) = event::read()? 
         {
@@ -466,26 +253,6 @@ run(mut terminal: DefaultTerminal) -> io::Result<()>
                                                     main_log.summary.insert(ip.to_string(),data.clone());
                                                 }
                                             } 
-                                            //else 
-                                            //{
-                                            //    let to_main = main_log.summary.get_mut(ip);
-                                            //    let from_data = from_log_data.get_mut(ip);
-                                            //    if let (Some(to),Some(from)) = (to_main,from_data) 
-                                            //    {
-                                            //        to.set_ip_address(from.get_ip_address().clone());
-                                            //        //Setting time range increments frequency.
-                                            //        //to.set_frequency(from.get_frequency());
-                                            //        to.set_ip2location_data(from.get_ip2location_data().clone());
-                                            //        let protos: Vec<String> = from.get_protocols().clone();
-                                            //        for proto in protos {to.set_protocol(proto);}
-                                            //        let time_ranges: HashMap<String,u32> = from.get_time_range().clone();    
-                                            //        for (time,_) in time_ranges {to.set_time_range(time);}
-                                            //        //let file_info = from.file_info.clone();
-                                            //        to.file_info.extend(from.file_info.clone());  
-                                            //        to.conn_state.extend(from.conn_state.clone());
-                                            //    }
-                                            //    //data.set_frequency(curr_log.summary.get_frequency()); 
-                                            //}
                                         }
                                         information.push_str(&current.to_string());
                                     } 
@@ -542,74 +309,6 @@ run(mut terminal: DefaultTerminal) -> io::Result<()>
                                 state.modal_open = true;
                             }
                         }
-                        /*
-                        let data = format!("ip={},start={},end={},base={}",&state.ip,&state.start_date,&state.end_date,&state.base_dir);
-                        if let Ok(input_args) = parse_input(&data)
-                        {
-                            if let Some(start_date) = &input_args.start
-                            {
-                                if let Some(end_date) = input_args.end 
-                                {
-                                    let date_strings = generate_dates(&input_args.start.unwrap().to_string(),&input_args.end_date.unwrap().to_string());
-                                    state.info_text = format!("{date_strings:?}");
-                                }
-
-                                let date = format!("{:?}", start_date);
-                                let params = ZeekSearchParamsBuilder::default()
-                                    .path_prefix(&*state.base_dir)
-                                    .start_date(&*date)
-                                    .build()
-                                    .unwrap();
-                                let mut log = ZeekLog::new();
-                                let res = log.search(&params);
-                                if let Err(_err) = res {
-                                    // messy for now. clean it up if you want and make a pr.
-                                    state.info_text = format!("{}\n{}\n{}\n{}\n{}\n",
-                                                              "Check usage.(", 
-                                                              " ip: address,", 
-                                                              " start: yyyy-mm-dd,",
-                                                              " end: yyyy-mm-dd,",
-                                                              " base: valid_base_dir_to_logs)");
-                                } 
-                                else 
-                                {
-                                    for ip in log.summary.keys()
-                                    {
-                                        state.ip_list.push(ip.to_string());
-                                    }
-                                    state.log_data = log.summary;
-
-                                    //if cfg!(feature = "ip2location") 
-                                    //{
-                                    //    if let Ok(response) = request(&state.ip.to_string())
-                                    //    {
-                                    //        let mut data = IP2LocationResponse::new();
-                                    //        data.create(&response);
-                                    //        let none = String::from("");
-                                    //        state.ip2loc_info = format!("\nip: {:?}\ncountry_code: {:?}\nregion_name: {:?}
-                                    //            \ncity_name: {:?}\nlatitude: {:?}\nlongitude: {:?}
-                                    //            \nzip_code: {:?}\ntime_zone: {:?}\nauto_system_num: {:?}
-                                    //            \nauto_system_name: {:?}\nis_proxy: {:?}", data.get_ip().as_ref().unwrap_or(&none), 
-                                    //            data.get_country_code().as_ref().unwrap_or(&none),
-                                    //            data.get_region_name().as_ref().unwrap_or(&none),
-                                    //            data.get_city_name().as_ref().unwrap_or(&none), 
-                                    //            data.get_latitude().as_ref().unwrap_or(&none), 
-                                    //            data.get_longitude().as_ref().unwrap_or(&none),
-                                    //            data.get_zip_code().as_ref().unwrap_or(&none),
-                                    //            data.get_time_zone().as_ref().unwrap_or(&none),
-                                    //            data.get_auto_system_num().as_ref().unwrap_or(&none),
-                                    //            data.get_auto_system_name().as_ref().unwrap_or(&none),
-                                    //            data.get_is_proxy().as_ref().unwrap_or(&none));
-                                    //    }
-                                    //    else 
-                                    //    {
-                                    //        state.info_text = format!("{}","Usage: ip = address, start = yyyy-mm-dd, end= yyyy-mm-dd, base=valid_directory");
-                                    //    }
-                                    //}
-                                }
-                            } 
-                        } else {state.modal_open = true;}
-                        */
                     }
                     KeyCode::Backspace => {
                         //let mut state = app_state.lock().unwrap();
@@ -669,6 +368,223 @@ run(mut terminal: DefaultTerminal) -> io::Result<()>
             }
         } // end event check
     } // end loop
+}
+
+fn 
+ui(frame: &mut Frame, state: &mut AppState, app_mode: &AppMode, list_state: &ListState)
+{
+    let layout = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints(vec![
+            Constraint::Max(30),
+            Constraint::Percentage(90),
+        ])
+        .split(frame.area());
+
+    let right = Layout::default()
+        .direction(Direction::Vertical)
+        //.constraints([Constraint::Percentage(40), Constraint::Percentage(60)].as_ref())
+        .constraints([Constraint::Percentage(100)].as_ref())
+        .split(layout[1]);
+
+    let right_split = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Percentage(20), Constraint::Percentage(80)].as_ref())
+        .split(right[0]);
+
+    //let mut state = app_state.lock().unwrap();
+    if state.display_dashboard 
+    {                          
+        let mut keys = Vec::<ListItem>::new();
+        for ip in &state.ip_list
+        {
+            keys.push(ListItem::new(ip.to_string()));
+        }
+
+        let ip_keys = List::new(keys)
+            .block(Block::default().borders(Borders::ALL).title("IP Addressses"))
+            .highlight_style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD));
+        let index = state.index;
+        state.list_state.select(Some(index));
+        frame.render_stateful_widget(ip_keys, layout[0], &mut state.list_state);
+
+        if let Some(ip) = state.ip_list.get(state.index)
+        {
+            if let Some(data) = state.log_data.get(ip) 
+            {                     
+                let main_data = format!(
+                    "\nIP Address: {}",data.get_ip_address()
+                );
+
+                let main_data_para = Paragraph::new(main_data)
+                    .block(Block::default().borders(Borders::ALL).title("General SummaryData"));
+                //frame.render_widget(main_data_para, right[0]);
+
+                let mut lat = 0.0;
+                let mut lon = 0.0;
+                if cfg!(feature = "ip2location") 
+                {
+                   
+                let ip2location_data = match data.get_ip2location_data()
+                {
+                    Some(data) => {
+                        let none = String::from("");
+                        lat = data.get_latitude().as_ref().unwrap_or(&"0.0".to_string()).parse::<f32>().unwrap();
+                        lon = data.get_longitude().as_ref().unwrap_or(&"0.0".to_string()).parse::<f32>().unwrap();
+                        format!("\nip: {:?}\ncountry_code: {:?}\nregion_name: {:?}
+                            \ncity_name: {:?}\nlatitude: {:?}\nlongitude: {:?}
+                            \nzip_code: {:?}\ntime_zone: {:?}\nauto_system_num: {:?}
+                            \nauto_system_name: {:?}\nis_proxy: {:?}", data.get_ip().as_ref().unwrap_or(&none), 
+                            data.get_country_code().as_ref().unwrap_or(&none),
+                            data.get_region_name().as_ref().unwrap_or(&none),
+                            data.get_city_name().as_ref().unwrap_or(&none), 
+                            data.get_latitude().as_ref().unwrap_or(&none), 
+                            data.get_longitude().as_ref().unwrap_or(&none),
+                            data.get_zip_code().as_ref().unwrap_or(&none),
+                            data.get_time_zone().as_ref().unwrap_or(&none),
+                            data.get_auto_system_num().as_ref().unwrap_or(&none),
+                            data.get_auto_system_name().as_ref().unwrap_or(&none),
+                            data.get_is_proxy().as_ref().unwrap_or(&none))
+                    }
+                    None => "none".to_string(),
+                };
+                let ip2location_para = Paragraph::new(ip2location_data)
+                    .block(Block::default().borders(Borders::ALL).title("IP2Location SummaryData"))
+                    .wrap(Wrap {trim: true });
+                frame.render_widget(ip2location_para, right_split[0]);
+                }
+
+                let some_para = Paragraph::new(String::from("placeholder"))
+                    .block(Block::default().borders(Borders::ALL).title("SummaryData"));
+
+                let canvas = Canvas::default()
+                    .block(Block::bordered().title("World"))
+                    .marker(Marker::Dot)
+                    .paint(|ctx| {
+                        ctx.draw(&Map {
+                            color: Color::Green,
+                            resolution: MapResolution::High,
+                        });
+
+                        ctx.print(lon.into(), lat.into(), data.get_ip_address().clone().yellow());
+                    })
+                    .x_bounds([-180.0, 180.0])
+                    .y_bounds([-90.0, 90.0]);
+
+                frame.render_widget(canvas, right_split[1]);
+            }
+        }
+    } 
+      
+    if let AppMode::Menu = app_mode 
+    {
+        let screen_size = frame.area();
+        let modal_width = 90; // give this a dynamic width/height
+        let modal_height = 30;
+        //https://doc.rust-lang.org/core/primitive.u16.html#method.saturating_sub
+        let modal_x = (screen_size.width.saturating_sub(modal_width)) / 2;
+        let modal_y = (screen_size.height.saturating_sub(modal_height)) / 2;
+
+        let modal = Block::default()
+            .title("Enter IP / Start date / End date")
+            .borders(Borders::ALL)
+            .style(Style::default().fg(Color::White).bg(Color::Black).add_modifier(Modifier::BOLD));
+
+        let modal_block = Rect::new(modal_x, modal_y, modal_width, modal_height); 
+        frame.render_widget(Clear, modal_block);
+        frame.render_widget(modal, modal_block);
+
+        let inner_layout = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([Constraint::Percentage(50), Constraint::Percentage(50)].as_ref())
+            .split(modal_block);
+
+        let left_col = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([Constraint::Length(4), Constraint::Length(4), 
+                         Constraint::Length(4), Constraint::Length(4)].as_ref())
+            .split(inner_layout[0]);
+
+        let right_col = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([Constraint::Percentage(100)].as_ref())
+            .split(inner_layout[1]);
+
+        let draw_input_box = |title: Option<&str>, text: &str, is_focused: bool| -> Paragraph {
+            let input_style = if is_focused {
+                Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)
+            } else {
+                Style::default().fg(Color::White)
+            };
+            
+            if let Some(title) = title 
+            {
+                Paragraph::new(Span::styled(
+                    format!("{}: {}", title, text),
+                    input_style,
+                ))
+                .block(Block::default().borders(Borders::ALL))
+                .alignment(Alignment::Left)
+                .wrap(Wrap {trim: true })
+            }
+            else 
+            {
+                Paragraph::new(Span::styled(
+                    format!("{}", text),
+                    input_style,
+                ))
+                .block(Block::default().borders(Borders::ALL))
+                .alignment(Alignment::Left)
+                .wrap(Wrap {trim: true })
+            }
+        };
+
+        //let mut state = app_state.lock().unwrap();
+        frame.render_widget(
+            draw_input_box(Some("IP address"), &state.ip, state.focus == Focus::IpInput),
+            left_col[0],
+        );
+        frame.render_widget(
+            draw_input_box(Some("Start Date"), &state.start_date, state.focus == Focus::StartInput),
+            left_col[1],
+        );
+        frame.render_widget(
+            draw_input_box(Some("End Date"), &state.end_date, state.focus == Focus::EndInput),
+            left_col[2],
+        );
+        frame.render_widget(
+            draw_input_box(Some("Base Dir"), &state.base_dir, state.focus == Focus::BaseDirInput),
+            left_col[3],
+        );
+        frame.render_widget(
+            draw_input_box(None, &state.info_text, false),
+            right_col[0],
+        );
+        match state.focus
+        {
+            Focus::IpInput => {
+                let cursor_x = left_col[0].x + 13 + state.ip.len() as u16;
+                let cursor_y = left_col[0].y + 1;
+                frame.set_cursor(cursor_x,cursor_y);
+            }
+            Focus::StartInput => {
+                let cursor_x = left_col[1].x + 13 + state.start_date.len() as u16;
+                let cursor_y = left_col[1].y + 1;
+                frame.set_cursor(cursor_x,cursor_y);
+            }
+            Focus::EndInput => {
+                let cursor_x = left_col[2].x + 11 + state.end_date.len() as u16;
+                let cursor_y = left_col[2].y + 1;
+                frame.set_cursor(cursor_x,cursor_y);
+            }
+            Focus::BaseDirInput => {
+                let cursor_x = left_col[3].x + 11 + state.base_dir.len() as u16;
+                let cursor_y = left_col[3].y + 1;
+                frame.set_cursor(cursor_x,cursor_y);
+            }
+            _ => {}
+        }
+    }
 }
 
 fn 
