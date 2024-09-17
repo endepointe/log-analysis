@@ -157,6 +157,11 @@ run(mut terminal: DefaultTerminal) -> io::Result<()>
                                         else { state.ip_index = state.ip_list.len() - 1; }
                                     }
                                     Tab_0_Focus::ContentArea => {
+                                        state.tab_0_state.vertical_scroll = 
+                                            state.tab_0_state.vertical_scroll.saturating_add(1);
+                                        state.tab_0_state.vertical_scroll_state =
+                                            state.tab_0_state.vertical_scroll_state
+                                                .position(state.tab_0_state.vertical_scroll);
                                     }
                                 }
                             }
@@ -175,6 +180,11 @@ run(mut terminal: DefaultTerminal) -> io::Result<()>
                                         } else { state.ip_index = 0; }
                                     }
                                     Tab_0_Focus::ContentArea => {
+                                        state.tab_0_state.vertical_scroll = 
+                                            state.tab_0_state.vertical_scroll.saturating_sub(1);
+                                        state.tab_0_state.vertical_scroll_state =
+                                            state.tab_0_state.vertical_scroll_state
+                                                .position(state.tab_0_state.vertical_scroll);
                                     }
                                 }
                             }
@@ -549,7 +559,7 @@ draw_tab_0(frame: &mut Frame, state: &mut AppState, area: Rect)
             //https://doc.rust-lang.org/core/primitive.u16.html#method.saturating_sub
             let screen_size = frame.area();
             let width = layout[0].width * 30 / 100;
-            let height = layout[0].height * 20 / 100;
+            let height = layout[0].height * 50 / 100;
 
             let info_overlay_area = Rect {
                 x: (screen_size.width.saturating_sub(width)) / 2,
@@ -607,7 +617,8 @@ draw_tab_0(frame: &mut Frame, state: &mut AppState, area: Rect)
                 ]),
             ];
 
-            let info_para = Paragraph::new(text);
+            let info_para = Paragraph::new(text)
+                .scroll((state.tab_0_state.vertical_scroll as u16, 0));
 
             if state.show_info_box
             {
