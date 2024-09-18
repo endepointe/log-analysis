@@ -160,36 +160,71 @@ impl ZeekLog
         let mut header_line = 0;
         if separator_set 
         {
-            for line in reader.lines() 
+            match search_bits as u8
             {
-                if header_line < 8 {
-                    header_line = header_line + 1;
-                    continue;
-                } 
-
-                let mut data: Vec<&str> = Vec::<&str>::new();
-
-                if let Ok(content) = line.as_ref()
-                {
-                    if content.contains("#close") {break;}
-                }
-                data = line.as_ref().expect("values should be refd")
-                    .split(_separator).collect::<Vec<&str>>();
-                let mut iter = std::iter::zip(&fields,&data);
-                for (field,item) in iter
-                {
-                    if let Some(fielditem) = map.get_mut(field)
+                0 => {
+                    for line in reader.lines() 
                     {
-                        fielditem.push(item.to_string());
+                        if header_line < 8 {
+                            header_line = header_line + 1;
+                            continue;
+                        } 
+
+                        let mut data: Vec<&str> = Vec::<&str>::new();
+
+                        if let Ok(content) = line.as_ref()
+                        {
+                            if content.contains("#close") {break;}
+                        }
+                        data = line.as_ref().expect("values should be refd")
+                            .split(_separator).collect::<Vec<&str>>();
+                        let mut iter = std::iter::zip(&fields,&data);
+                        for (field,item) in iter
+                        {
+                            if let Some(fielditem) = map.get_mut(field)
+                            {
+                                fielditem.push(item.to_string());
+                            }
+                        }
                     }
                 }
+                4 => {
+                    let src_ip = params.src_ip.unwrap();
+                    for line in reader.lines() 
+                    {
+                        if header_line < 8 {
+                            header_line = header_line + 1;
+                            continue;
+                        } 
+
+                        let mut data: Vec<&str> = Vec::<&str>::new();
+
+                        if let Ok(content) = line.as_ref()
+                        {
+                            if content.contains("#close") {break;}
+                        }
+                        data = line.as_ref().expect("values should be refd")
+                            .split(_separator).collect::<Vec<&str>>();
+                        let mut iter = std::iter::zip(&fields,&data);
+                        for (field,item) in iter
+                        {
+                            if let Some(fielditem) = map.get_mut(field)
+                            {
+                                if *item == src_ip
+                                {
+                                    fielditem.push(item.to_string());
+                                }
+                            }
+                        }
+                    }
+                    //dbg!("search by ip address");std::process::exit(0);
+                }
+                _ => {}
             }
         }
         Ok(())
     }
 
-    // These searches should be the responsibility of the client
-    // functions (TUI).
     // data (all)
     //fn _000(fields: &Vec<String>, 
     //        data: &Vec<&str>, 

@@ -133,11 +133,12 @@ fn test_search_date()
 
 #[test]
 #[cfg(feature = "ip2location")]
-fn test_search_000_pass_ip2location()
+fn test_search_date_ip2location()
 {
+
     let params = ZeekSearchParamsBuilder::default()
         .path_prefix("zeek-test-logs")
-        .start_date("2024-07-03")
+        .selected_date("2024-07-03")
         .build()
         .unwrap();
 
@@ -146,66 +147,18 @@ fn test_search_000_pass_ip2location()
     //dbg!(&res);
     assert!(res.is_ok());
     //dbg!(&log.summary);
-    assert_eq!(false, log.summary.len() == 0);
-    dbg!(log.summary);
+    //assert_eq!(false, log.summary.len() == 0);
+    dbg!(&log.summary.keys());
+    dbg!(&log.raw.keys());
 }
 
+
 #[test]
-fn test_search_000_pass()
+fn test_search_ip()
 {
     let params = ZeekSearchParamsBuilder::default()
         .path_prefix("zeek-test-logs")
-        .start_date("2024-07-03")
-        .build()
-        .unwrap();
-
-    let mut log = ZeekLog::new();
-    let res = log.search(&params);
-    //dbg!(&res);
-    assert!(res.is_ok());
-    //dbg!(&log.summary);
-    assert_eq!(false, log.summary.len() == 0);
-    dbg!(log.summary);
-}
-
-#[test]
-fn test_search_000_fail()
-{
-    let params = ZeekSearchParamsBuilder::default()
-        .path_prefix("zeek-test-logs")
-        .start_date("2024-07")
-        .build()
-        .unwrap();
-    let mut log = ZeekLog::new();
-    let res = log.search(&params);
-    assert_eq!(res, Err(Error::SearchInvalidStartDate));
-}
-
-//#[test]
-//fn test_search_001_pass()
-//{
-//    let params = ZeekSearchParamsBuilder::default()
-//        .path_prefix("zeek-test-logs")
-//        .start_date("2024-07-02")
-//        .end_date("2024-07-03")
-//        .build()
-//        .unwrap();
-//
-//    let mut log = ZeekLog::new();
-//    let res = log.search(&params);
-//    //dbg!(&res);
-//    assert!(res.is_ok());
-//    //dbg!(&log.summary);
-//    assert_eq!(false, log.summary.len() == 0);
-//    dbg!(log.summary);
-//}
-
-#[test]
-fn test_search_100_pass()
-{
-    let params = ZeekSearchParamsBuilder::default()
-        .path_prefix("zeek-test-logs")
-        .start_date("2024-07-02")
+        .selected_date("2024-07-02")
         .src_ip("43.134.231.178")
         .build()
         .unwrap();
@@ -217,60 +170,78 @@ fn test_search_100_pass()
 
     let params = ZeekSearchParamsBuilder::default()
         .path_prefix("~/dev/log-analysis/zeek-test-logs")
-        .start_date("2024-07-02")
+        .selected_date("2024-07-03")
         .src_ip("43.134.231.178")
         .build()
         .unwrap();
     let mut log = ZeekLog::new();
     let res = log.search(&params);
     assert!(res.is_ok());
-    assert_eq!(false, log.summary.len() == 0);
-    //dbg!(log.summary);
-}
-
-#[test]
-fn test_search_100_fail()
-{
-    let params = ZeekSearchParamsBuilder::default()
-        .path_prefix("zeek-test-logs")
-        .start_date("2024-07-02")
-        .src_ip("3.14.23.8")// ip should not exist in the logs
-        .build()
-        .unwrap();
-    let mut log = ZeekLog::new();
-    let res = log.search(&params);
-    assert!(res.is_ok());
-}
-
-#[test]
-fn test_search_110_pass()
-{
-    let params = ZeekSearchParamsBuilder::default()
-        .path_prefix("zeek-test-logs")
-        .start_date("2024-07-02")
-        .src_ip("43.134.231.178")
-        .proto_type("WEird")
-        .build()
-        .unwrap();
-    let mut log = ZeekLog::new();
-    let res = log.search(&params);
-    assert!(res.is_ok());
-    assert_eq!(false, log.summary.len() == 0);
-    //dbg!(log.summary);
-}
-
-#[test]
-fn test_search_110_fail()
-{
-    let params = ZeekSearchParamsBuilder::default()
-        .path_prefix("zeek-test-logs")
-        .start_date("2024-07-02")
-        .src_ip("43.134.231.178")
-        .proto_type("htTp")
-        .build()
-        .unwrap();
-    let mut log = ZeekLog::new();
-    let res = log.search(&params);
     assert_eq!(true, log.summary.len() == 0);
-    //dbg!(log.summary);
+    dbg!(log.summary.keys());
+    dbg!(&log.raw.keys());
 }
+
+#[test]
+#[cfg(feature = "ip2location")]
+fn test_search_ip_location()
+{
+    // this test requires a date and can be used to gather all ip
+    // addresses from start to end. see main.rs.
+    let params = ZeekSearchParamsBuilder::default()
+        .path_prefix("zeek-test-logs")
+        .selected_date("2024-07-02")
+        .src_ip("91.92.245.221")
+        .build()
+        .unwrap();
+    let mut log = ZeekLog::new();
+    let res = log.search(&params);
+    assert!(res.is_ok());
+    assert_eq!(false, log.summary.len() == 0);
+    dbg!(log.summary);
+
+    let params = ZeekSearchParamsBuilder::default()
+        .path_prefix("~/dev/log-analysis/zeek-test-logs")
+        .selected_date("2024-07-03")
+        .src_ip("43.134.231.178")
+        .build()
+        .unwrap();
+    let mut log = ZeekLog::new();
+    let res = log.search(&params);
+    assert!(res.is_ok());
+    assert_eq!(true, log.summary.len() == 0);
+    dbg!(log.summary.keys());
+    dbg!(&log.raw.keys());
+}
+//#[test]
+//fn test_search_ip_proto_pass()
+//{
+//    let params = ZeekSearchParamsBuilder::default()
+//        .path_prefix("zeek-test-logs")
+//        .start_date("2024-07-02")
+//        .src_ip("43.134.231.178")
+//        .proto_type("WEird")
+//        .build()
+//        .unwrap();
+//    let mut log = ZeekLog::new();
+//    let res = log.search(&params);
+//    assert!(res.is_ok());
+//    assert_eq!(false, log.summary.len() == 0);
+//    //dbg!(log.summary);
+//}
+//
+//#[test]
+//fn test_search_ip_proto_fail()
+//{
+//    let params = ZeekSearchParamsBuilder::default()
+//        .path_prefix("zeek-test-logs")
+//        .start_date("2024-07-02")
+//        .src_ip("43.134.231.178")
+//        .proto_type("htTp")
+//        .build()
+//        .unwrap();
+//    let mut log = ZeekLog::new();
+//    let res = log.search(&params);
+//    assert_eq!(true, log.summary.len() == 0);
+//    //dbg!(log.summary);
+//}

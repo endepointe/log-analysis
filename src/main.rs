@@ -232,7 +232,8 @@ run(mut terminal: DefaultTerminal) -> io::Result<()>
                         {
                             (Some(start),Some(end),Some(ip),Some(_base)) => 
                             {
-                                state.info_text = format!("Search for {} between {} and {}", ip, start, end);
+                                state.info_text = format!("Search for {} between {} and {}", 
+                                                          ip, start, end);
                             }
                             (Some(start),None,Some(ip),Some(_base)) => 
                             {
@@ -242,9 +243,19 @@ run(mut terminal: DefaultTerminal) -> io::Result<()>
                             {
                                 state.info_text = format!("Searching for {} on {}.", ip, end);
                             }
-                            (None,None,Some(ip),Some(_base)) => 
+                            (None,None,Some(ip),Some(base)) => 
                             {
                                 state.info_text = format!("Searching for {} on all dates. This is expensive!", ip);
+
+                                let path_prefix = String::from(base);
+                                let ip:&str = &ip.to_string(); 
+                                let params = ZeekSearchParamsBuilder::default()
+                                    .path_prefix(&*path_prefix)
+                                    .src_ip(&*ip)
+                                    .build()
+                                    .unwrap();
+                                let mut main_log = ZeekLog::new();
+                                let _res = main_log.search(&params);
                             }
                             (Some(start),Some(end),None,Some(base)) => 
                             {
@@ -596,6 +607,11 @@ draw_tab_0(frame: &mut Frame, state: &mut AppState, area: Rect)
                 Line::from(""),
                 Line::from(""),
                 Line::from(""),
+                Line::from("Press tab to control this menu"),
+                Line::from(""),
+                Line::from(""),
+                Line::from(""),
+                Line::from(""),
                 Line::from("Scroll up/down"),
                 Line::from(""),
                 Line::from(""),
@@ -637,17 +653,13 @@ draw_tab_0(frame: &mut Frame, state: &mut AppState, area: Rect)
             if state.show_info_box
             {
                 frame.render_widget(Clear, info_layout[0]);
-                if cfg!(feature = "ip2location") 
-                {
+                let info_para = Paragraph::new(text_list)
+                    .block(create_block(format!("Additional info for: {}",
+                                                data.get_ip_address().as_str())))
+                    .scroll((state.tab_0_state.vertical_scroll as u16, 0));
 
-                    let info_para = Paragraph::new(text_list)
-                        .block(create_block(format!("Additional info for: {}",
-                                                    data.get_ip_address().as_str())))
-                        .scroll((state.tab_0_state.vertical_scroll as u16, 0));
-
-                    frame.render_widget(Clear, info_layout[0]);
-                    frame.render_widget(info_para, info_layout[0]);
-                }
+                frame.render_widget(Clear, info_layout[0]);
+                frame.render_widget(info_para, info_layout[0]);
             }
         }
     }
