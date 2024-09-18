@@ -242,20 +242,32 @@ run(mut terminal: DefaultTerminal) -> io::Result<()>
                             (None,Some(end),Some(ip),Some(_base)) => 
                             {
                                 state.info_text = format!("Searching for {} on {}.", ip, end);
+                                
                             }
-                            (None,None,Some(ip),Some(base)) => 
+                            (None,None,Some(ip),Some(_base)) => 
                             {
-                                state.info_text = format!("Searching for {} on all dates. This is expensive!", ip);
+                                state.info_text = format!("Searching for {} on all 
+                                                          available zeek log dates. 
+                                                          This is expensive.", ip);
+                            }
+                            (None,None,Some(ip),None) => 
+                            {
+                                let ip: String = ip.to_string(); 
+                                let res = request(&ip);
 
-                                let path_prefix = String::from(base);
-                                let ip:&str = &ip.to_string(); 
-                                let params = ZeekSearchParamsBuilder::default()
-                                    .path_prefix(&*path_prefix)
-                                    .src_ip(&*ip)
-                                    .build()
-                                    .unwrap();
-                                let mut main_log = ZeekLog::new();
-                                let _res = main_log.search(&params);
+                                if res.is_ok() {
+                                    state.ip_list.push(ip.to_string());
+                                    let mut summary_data = SummaryData::new(String::from(&ip));
+                                    let mut loc = IP2LocationResponse::new();
+                                    let res = res.unwrap();
+                                    loc.create(res.as_str());
+                                    summary_data.ip2location = Some(loc.clone());
+                                    let mut main_log = ZeekLog::new();
+                                    main_log.summary.insert(ip, summary_data);
+                                    state.log_data = main_log.summary;
+                                    app_mode = AppMode::Normal;
+                                }
+
                             }
                             (Some(start),Some(end),None,Some(base)) => 
                             {
@@ -796,7 +808,7 @@ parse_date(input: &str) -> Option<NaiveDate>
 fn
 parse_base(input: &str) -> Option<String>
 {
-    if !input.len() > 0
+    if input.len() > 0
     {
         return input.parse().ok();
     }
