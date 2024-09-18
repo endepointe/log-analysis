@@ -463,12 +463,63 @@ draw_tab_0(frame: &mut Frame, state: &mut AppState, area: Rect)
         ])
         .split(area);
 
+    let bordered = match state.tab_0_focus {
+        Tab_0_Focus::IpListArea => 0,
+        Tab_0_Focus::ContentArea => 1,
+    };
+
+    let create_block = |title| {
+        Block::default()
+            .borders(Borders::ALL)
+            .border_type(if bordered == 1 { BorderType::Double } else {BorderType::Plain })
+            .style(Style::default().fg(Color::White).bg(Color::Black).add_modifier(Modifier::BOLD))
+            .title(Span::styled(
+                title,
+                Style::default().bg(Color::Black).add_modifier(Modifier::BOLD),
+            ))
+    };
+
     if let Some(ip) = state.ip_list.get(state.ip_index)
     {
         if let Some(data) = state.log_data.get(ip) 
         {                     
+
+
+            let mut text_list: Vec<Line> = Vec::new();
             let mut lat = 0.0;
             let mut lon = 0.0;
+
+            let ip2location_data = match data.get_ip2location_data()
+            {
+                Some(data) => {
+                    let none = String::from("");
+                    lat = data.get_latitude().as_ref()
+                        .unwrap_or(&"0.0".to_string()).parse::<f32>().unwrap();
+                    lon = data.get_longitude().as_ref()
+                        .unwrap_or(&"0.0".to_string()).parse::<f32>().unwrap();
+                    text_list.push(Line::from(format!("Lat: {}",lat)));
+                    text_list.push(Line::from(format!("Lon: {}",lon)));
+                    text_list.push(Line::from(format!("IP: {}",
+                        data.get_ip().as_ref().unwrap_or(&none))));
+                    text_list.push(Line::from(format!("Country Code: {}",
+                        data.get_country_code().as_ref().unwrap_or(&none))));
+                    text_list.push(Line::from(format!("Region: {}",
+                        data.get_region_name().as_ref().unwrap_or(&none))));
+                    text_list.push(Line::from(format!("City Name: {}",
+                        data.get_city_name().as_ref().unwrap_or(&none))));
+                    text_list.push(Line::from(format!("Zipcode: {}",
+                        data.get_zip_code().as_ref().unwrap_or(&none))));
+                    text_list.push(Line::from(format!("Timezone: {}",
+                        data.get_time_zone().as_ref().unwrap_or(&none))));
+                    text_list.push(Line::from(format!("Auto System Number: {}",
+                        data.get_auto_system_num().as_ref().unwrap_or(&none))));
+                    text_list.push(Line::from(format!("Auto System Name: {}",
+                        data.get_auto_system_name().as_ref().unwrap_or(&none))));
+                    text_list.push(Line::from(format!("Is a proxy: {}",
+                        data.get_is_proxy().as_ref().unwrap_or(&none))));
+                }
+                None => {}
+            };
 
             let some_para = Paragraph::new(String::from("placeholder"))
                 .block(Block::default().borders(Borders::ALL).title("SummaryData"));
@@ -481,7 +532,6 @@ draw_tab_0(frame: &mut Frame, state: &mut AppState, area: Rect)
                         color: Color::Green,
                         resolution: MapResolution::High,
                     });
-
                     ctx.print(lon.into(), lat.into(), data.get_ip_address().clone().yellow());
                 })
                 .x_bounds([-180.0, 180.0])
@@ -496,10 +546,6 @@ draw_tab_0(frame: &mut Frame, state: &mut AppState, area: Rect)
                 height: layout[0].height * 35 / 100,
             };
 
-            let bordered = match state.tab_0_focus {
-                Tab_0_Focus::IpListArea => 0,
-                Tab_0_Focus::ContentArea => 1,
-            };
 
             let ip_list_block = Block::default()
                 .title("IP List")
@@ -523,39 +569,6 @@ draw_tab_0(frame: &mut Frame, state: &mut AppState, area: Rect)
             state.list_state.select(Some(state.ip_index));
             frame.render_stateful_widget(ip_keys, ip_overlay_area, &mut state.list_state);
 
-            if cfg!(feature = "ip2location") 
-            {
-                /*
-                let ip2location_data = match data.get_ip2location_data()
-                {
-                    Some(data) => {
-                        let none = String::from("");
-                        lat = data.get_latitude().as_ref().unwrap_or(&"0.0".to_string()).parse::<f32>().unwrap();
-                        lon = data.get_longitude().as_ref().unwrap_or(&"0.0".to_string()).parse::<f32>().unwrap();
-                        format!("\nip: {:?}\ncountry_code: {:?}\nregion_name: {:?}
-                            \ncity_name: {:?}\nlatitude: {:?}\nlongitude: {:?}
-                            \nzip_code: {:?}\ntime_zone: {:?}\nauto_system_num: {:?}
-                            \nauto_system_name: {:?}\nis_proxy: {:?}", data.get_ip().as_ref().unwrap_or(&none), 
-                            data.get_country_code().as_ref().unwrap_or(&none),
-                            data.get_region_name().as_ref().unwrap_or(&none),
-                            data.get_city_name().as_ref().unwrap_or(&none), 
-                            data.get_latitude().as_ref().unwrap_or(&none), 
-                            data.get_longitude().as_ref().unwrap_or(&none),
-                            data.get_zip_code().as_ref().unwrap_or(&none),
-                            data.get_time_zone().as_ref().unwrap_or(&none),
-                            data.get_auto_system_num().as_ref().unwrap_or(&none),
-                            data.get_auto_system_name().as_ref().unwrap_or(&none),
-                            data.get_is_proxy().as_ref().unwrap_or(&none))
-                    }
-                    None => "none".to_string(),
-                };
-                let ip2location_para = Paragraph::new(ip2location_data)
-                    .block(Block::default().borders(Borders::ALL).title("IP2Location SummaryData"))
-                    .wrap(Wrap {trim: true });
-                frame.render_widget(ip2location_para, right_split[0]);
-                */
-            }
-
             //https://doc.rust-lang.org/core/primitive.u16.html#method.saturating_sub
             let screen_size = frame.area();
             let width = layout[0].width * 30 / 100;
@@ -571,20 +584,23 @@ draw_tab_0(frame: &mut Frame, state: &mut AppState, area: Rect)
             let info_layout = Layout::default()
                 .direction(Direction::Vertical)
                 .constraints([
-                    Constraint::Percentage(50),
-                    Constraint::Percentage(50),
+                    Constraint::Percentage(100),
                 ])
                 .split(info_overlay_area);
 
             // TODO:
             // - the tab focus changes value but does not double the iplist border.
-            let info_block = Block::default()
-                .title("Info for: ".to_owned() + data.get_ip_address().as_str())
-                .borders(Borders::ALL)
-                .border_type(if bordered == 1 { BorderType::Double } else {BorderType::Plain })
-                .style(Style::default().fg(Color::White).bg(Color::Black).add_modifier(Modifier::BOLD));
 
-            let text = vec![
+            let mut text = vec![
+                Line::from(""),
+                Line::from(""),
+                Line::from(""),
+                Line::from(""),
+                Line::from("Scroll up/down"),
+                Line::from(""),
+                Line::from(""),
+                Line::from(""),
+                Line::from(""),
                 Line::from("This is a line "),
                 Line::from("This is a line   ".red()),
                 Line::from("This is a line".on_dark_gray()),
@@ -601,7 +617,7 @@ draw_tab_0(frame: &mut Frame, state: &mut AppState, area: Rect)
                 Line::from("This is a line   ".red()),
                 Line::from("This is a line".on_dark_gray()),
                 Line::from("This is a longer line".crossed_out()),
-                Line::from("Horizontal Layout Example. Press q to quit".dark_gray())
+                Line::from("Press q to quit".dark_gray())
                         .alignment(Alignment::Center),
                     Line::from("Each line has 2 constraints, plus Min(0) to fill the remaining space."),
                     Line::from("E.g. the second line of the Len/Min box is [Length(2), Min(2), Min(0)]"),
@@ -616,15 +632,22 @@ draw_tab_0(frame: &mut Frame, state: &mut AppState, area: Rect)
                     ),
                 ]),
             ];
-
-            let info_para = Paragraph::new(text)
-                .scroll((state.tab_0_state.vertical_scroll as u16, 0));
+            text_list.append(&mut text);
 
             if state.show_info_box
             {
                 frame.render_widget(Clear, info_layout[0]);
-                frame.render_widget(info_block, info_layout[0]);
-                frame.render_widget(info_para, info_layout[1]);
+                if cfg!(feature = "ip2location") 
+                {
+
+                    let info_para = Paragraph::new(text_list)
+                        .block(create_block(format!("Additional info for: {}",
+                                                    data.get_ip_address().as_str())))
+                        .scroll((state.tab_0_state.vertical_scroll as u16, 0));
+
+                    frame.render_widget(Clear, info_layout[0]);
+                    frame.render_widget(info_para, info_layout[0]);
+                }
             }
         }
     }
@@ -739,7 +762,7 @@ draw_input_menu(frame: &mut Frame, state: &mut AppState)
         _ => {}
     }
 }
-
+// helpers
 fn 
 parse_ip(input: &str) -> Option<IpAddr> 
 {
@@ -768,6 +791,7 @@ parse_base(input: &str) -> Option<String>
     None
 }
 
+// unused
 fn
 _generate_dates(start: &str, end: &str) -> Vec<String>
 {
