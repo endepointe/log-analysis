@@ -1,10 +1,10 @@
 [package]
-authors = ["ende <endepointe@gmail.com>"]
+authors = ["ende"]
 categories = ["filesystem"]
 description = "A zeek log analysis library implemented in Rust"
 name = "log-analysis"
 repository = "https://github.com/endepointe/log-analysis"
-version = "0.1.58"
+version = "0.1.59"
 edition = "2021"
 license = "MIT"
 
