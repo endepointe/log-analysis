@@ -10,7 +10,7 @@ Tools such as Kibana, Wazuh, Grafana, and SecurityOnion provide excellent soluti
 
 - Create an account on `https://www.ip2location.io/`.
 
-- Add your ip2location api key and the LOCAL_JSON_DB env variables to `$CARGO_HOME/config.toml` 
+- Add your ip2location api key and the IP2LOCATION_API_KEY env variable to `$CARGO_HOME/config.toml` 
 
 Example config.toml: 
 
