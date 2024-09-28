@@ -6,7 +6,7 @@ Tools such as Kibana, Wazuh, Grafana, and SecurityOnion provide excellent soluti
 
 ![Demo](demo.gif)
 
-# Install Rust
+## Install Rust
 
 ```bash
 ### Install rust (if not already):
