@@ -1,38 +1,43 @@
-# log-analysis (not complete)
+# log-analysis 
 
-Rust library designed for extracting relevant information from zeek logs.
 
+# Overview 
+Tools such as Kibana, Wazuh, Grafana, and SecurityOnion provide excellent solutions for ingesting and visualizing data. While the benefit of such tools cannot be understated, there are times when it is helpful to have an option to examine data where resources are limited. Using zeek logs, the following demonstration project aims to provide such a solution. 
 
 ![Demo](demo.gif)
 
+## Get Ip2location API key
 
-## Installation
+- Create an account on `https://www.ip2location.io/`.
 
-`cargo add log-analysis`
+- Add your ip2location api key and the LOCAL_JSON_DB env variables to `$CARGO_HOME/config.toml`.
+
+## Install and run 
+
+```bash
+$ git clone https://github.com/endepointe/log-analysis.git
+$ cd log-analysis
+$ sh decrypt.sh 
+### Enter the passphrase submitted along with the challenge.
+### Otherwise, use your own zeek log data (in tsv format) to demo this tool.
+$ sh run.sh
+### May take a minute to query ip results. 
+### Presents an opportunity to solve with threading.
+```
 
 ## Usage (also See TEsTing)
 
-```bash
-cargo run --features ip2location
-```
+- Scroll Up/Down: &#8593; / &#8595;
+- Change tabs: &#8592; / &#8594;
+- Toggle menu: Esc
+    - Toggle additional info: i
+- Toggle focus: Tab
+
 ## TEsTing
-
-While testing is straightforward, there are a few conditions that need to be met during development to save ip2location queries. 
-
-You will want to create two files: `ip2loc.json` and a directory that is the parent directory to the days of existing zeek logs which are in YYYY-MM-DD format.
-
-Create an account on `https://www.ip2location.io/` and use the `_write_to_file` test to create the `ip.db` file. Once created, create the `ip2loc.json` file using: `jq . ip.db > ip2loc.json`.
-
-Add your ip2location api key and the LOCAL_JSON_DB env variables to `$CARGO_HOME/config.toml`.
-
-At this point, you should be able to run the following test: 
-
-`cargo test test_search_date --features ip2location -- --nocapture`
 
 The setup and testing will improve, bear with me. If you run into any issues, please submit an issue. I am here to help.
 
 Tests located in tests/. Test-case addtions welcomed in PRs.
-
 
 ### Performance
 ```bash

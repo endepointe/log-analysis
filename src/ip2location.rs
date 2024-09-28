@@ -173,39 +173,39 @@ impl IP2LocationResponse
 // populating a database, returning relevant summaries for the client.
 pub fn request(ip_addr: &String) -> Result<String, String>
 {
-    let local_json_db = std::env::var("LOCAL_JSON_DB").unwrap();
-    let local_json_db = local_json_db.as_str();
-    let found: bool = local_json_db == "ip2loc.json";
-    if found  
-    {
-        use std::io::BufRead;
-        let file = std::fs::File::open(local_json_db).expect("local json db should exist"); 
-        let mut buffer = String::new();
-        let mut reader = std::io::BufReader::new(&file);
-        let mut res = String::new();
-        let mut found: bool = false;
-        let mut count = 0;
-        let mut lines_iter = reader.lines().map(|line| line.unwrap());
-        while let Some(line) = lines_iter.next()
-        {
-            if line.contains(ip_addr.as_str())
-            {
-                res.push_str("{");
-                res.push_str(&line);
-                while count < 11 // 12 items expected in the free tier ip2location response.
-                {
-                    let line = lines_iter.next().unwrap();
-                    let line = line.replace('\t',"").replace('\r',"")
-                        .replace('\n',"").replace(' ',"");
-                    res.push_str(&line);
-                    count = count + 1;
-                }
-                res.push_str("}");
-                return Ok(res);
-            }
-        }
-    } 
-    else
+    //if cfg!(feature = "ip2location") && cfg!(feature = "noquery")
+    //{
+    //    let local_json_db = std::env::var("LOCAL_JSON_DB").unwrap();
+    //    let local_json_db = local_json_db.as_str();
+    //    use std::io::BufRead;
+    //    let file = std::fs::File::open(local_json_db).expect("local json db should exist"); 
+    //    let mut buffer = String::new();
+    //    let mut reader = std::io::BufReader::new(&file);
+    //    let mut res = String::new();
+    //    let mut found: bool = false;
+    //    let mut count = 0;
+    //    let mut lines_iter = reader.lines().map(|line| line.unwrap());
+    //    while let Some(line) = lines_iter.next()
+    //    {
+    //        if line.contains(ip_addr.as_str())
+    //        {
+    //            res.push_str("{");
+    //            res.push_str(&line);
+    //            while count < 11 // 12 items expected in the free tier ip2location response.
+    //            {
+    //                let line = lines_iter.next().unwrap();
+    //                let line = line.replace('\t',"").replace('\r',"")
+    //                    .replace('\n',"").replace(' ',"");
+    //                res.push_str(&line);
+    //                count = count + 1;
+    //            }
+    //            res.push_str("}");
+    //            return Ok(res);
+    //        }
+    //    }
+    //} 
+    
+    if cfg!(feature = "ip2location")
     {
         let api_key = std::env::var("IP2LOCATION_API_KEY")
             .expect("add IP2LOCATION_API_KEY to $CARGO_HOME/config.toml");

@@ -31,11 +31,44 @@ fn test_flate2()
     d.read_to_string(&mut s).unwrap();
 
 }
+#[test]
+#[cfg(feature = "ip2location")]
+#[cfg(feature = "noquery")]
+fn test_cfg_ip2location_noquery()
+{
+    //let path = std::path::Path::new("ip.db");
+    //let mut file = std::fs::File::create(&path).expect("should be able to create the file.");
+    let params = ZeekSearchParamsBuilder::default()
+        .path_prefix("zeek-test-logs")
+        .selected_date("2024-07-02")
+        .build()
+        .unwrap();
 
+    let mut log = ZeekLog::new();
+    let res = log.search(&params);
+    assert!(res.is_ok());
+}
+
+#[test]
+#[cfg(feature = "ip2location")]
+fn test_cfg_ip2location()
+{
+    //let path = std::path::Path::new("ip.db");
+    //let mut file = std::fs::File::create(&path).expect("should be able to create the file.");
+    let params = ZeekSearchParamsBuilder::default()
+        .path_prefix("zeek-test-logs")
+        .selected_date("2024-07-02")
+        .build()
+        .unwrap();
+
+    let mut log = ZeekLog::new();
+    let res = log.search(&params);
+    assert!(res.is_ok());
+}
+ 
 #[test]
 fn _write_to_file()
 {
-
     let path = std::path::Path::new("ip.db");
     let mut file = std::fs::File::create(&path).expect("should be able to create the file.");
 
@@ -96,7 +129,7 @@ fn test_create_log()
     assert_eq!(true, dir.summary.is_empty());
     let params = ZeekSearchParamsBuilder::default()
         .path_prefix("zeek-test-logs")
-        .start_date("2024-07")
+        .selected_date("2024-07-02")
         .build()
         .unwrap();
     let mut log = ZeekLog::new();

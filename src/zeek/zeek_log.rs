@@ -423,7 +423,6 @@ impl ZeekLog
             {
                 //////////////////////////////////////////////////////////////////////
                 //dbg!("Consider setting up the ip2loc.json file to save api queries.");
-                //dbg!("Otherwise, this will work with live data, jsut omit the ip2location feature and the LOCAL_JSON_DB environment variable.");
                 //std::process::exit(1);
                 //////////////////////
 

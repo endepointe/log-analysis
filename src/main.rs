@@ -144,9 +144,6 @@ run(mut terminal: DefaultTerminal) -> io::Result<()>
             match app_mode 
             {
                 AppMode::Normal => match key.code {
-                    KeyCode::Char('m') => {
-                        app_mode = AppMode::Menu;
-                    }
                     KeyCode::Up => 
                     {
                         match state.tab_index { 
@@ -421,7 +418,7 @@ run(mut terminal: DefaultTerminal) -> io::Result<()>
                             }
                             MenuFocus::EndInput => {
                                 state.info_text = format!("{}", "Enter the base directory of the logs.
-                                                          \n (eg: basedir/yyyy-mm-dd)");
+                                                          \n (eg: basedir/<path_to_yyyy-mm-dd_log_dates>)");
                                 MenuFocus::BaseDirInput
                             }
                             MenuFocus::BaseDirInput => {
@@ -502,12 +499,11 @@ draw_tab_0(frame: &mut Frame, state: &mut AppState, area: Rect)
             ))
     };
 
+
     if let Some(ip) = state.ip_list.get(state.ip_index)
     {
         if let Some(data) = state.log_data.get(ip) 
         {                     
-
-
             let mut text_list: Vec<Line> = Vec::new();
             let mut lat = 0.0;
             let mut lon = 0.0;
