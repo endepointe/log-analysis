@@ -10,17 +10,31 @@ Tools such as Kibana, Wazuh, Grafana, and SecurityOnion provide excellent soluti
 
 - Create an account on `https://www.ip2location.io/`.
 
-- Add your ip2location api key and the LOCAL_JSON_DB env variables to `$CARGO_HOME/config.toml`.
+- Add your ip2location api key and the LOCAL_JSON_DB env variables to `$CARGO_HOME/config.toml` 
+
+Example config.toml: 
+
+```bash
+$ cat ~/.cargo/config.toml)
+[env]
+IP2LOCATION_API_KEY="yourip2locationapikey"
+```
 
 ## Install and run 
 
 ```bash
+### Install rust (if not already):
+$ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+
+### Clone repo:
 $ git clone https://github.com/endepointe/log-analysis.git
 $ cd log-analysis
 $ sh decrypt.sh 
+
 ### Enter the passphrase submitted along with the challenge.
 ### Otherwise, use your own zeek log data (in tsv format) to demo this tool.
 $ sh run.sh
+
 ### May take a minute to query ip results. 
 ### Presents an opportunity to solve with threading.
 ```
