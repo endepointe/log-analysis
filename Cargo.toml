@@ -7,6 +7,12 @@ repository = "https://github.com/endepointe/log-analysis"
 version = "0.1.6"
 edition = "2021"
 license = "MIT"
+exclude = [
+    "decrypt.sh",
+    "run.sh",
+    "queryip2loc.sh",
+    "zeek-test-logs.tar.aes256",
+]
 
 [profile.bench]
 debug = true
