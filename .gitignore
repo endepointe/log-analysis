@@ -4,8 +4,6 @@ Cargo.lock
 **/*.rs.bk
 *.pdb
 zeek-test-logs/
-zeek-test-logs.tar.aes256
-demo.gif
 
 # test tls
 *.pem
