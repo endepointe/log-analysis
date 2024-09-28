@@ -6,6 +6,13 @@ Tools such as Kibana, Wazuh, Grafana, and SecurityOnion provide excellent soluti
 
 ![Demo](demo.gif)
 
+# Install Rust
+
+```bash
+### Install rust (if not already):
+$ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+```
+
 ## Get Ip2location API key
 
 - Create an account on `https://www.ip2location.io/`.
@@ -20,12 +27,9 @@ $ cat ~/.cargo/config.toml)
 IP2LOCATION_API_KEY="yourip2locationapikey"
 ```
 
-## Install and run 
+## Clone and run 
 
 ```bash
-### Install rust (if not already):
-$ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-
 ### Clone repo:
 $ git clone https://github.com/endepointe/log-analysis.git
 $ cd log-analysis
